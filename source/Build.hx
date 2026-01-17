@@ -81,11 +81,11 @@ class Build
 								}
 							}
 					}
-					else
-					{
-						Sys.println(ANSIUtil.apply('Failed to build ${targetConfig.os}-${targetConfig.cpu}.', [ANSICode.Bold, ANSICode.Red]));
-						Sys.exit(1);
-					}
+				}
+				else
+				{
+					Sys.println(ANSIUtil.apply('Failed to build ${targetConfig.os}-${targetConfig.cpu}.', [ANSICode.Bold, ANSICode.Red]));
+					Sys.exit(1);
 				}
 			}
 		});
@@ -110,7 +110,7 @@ class Build
 					renderingBackends.push('angle_enable_vulkan=true');
 					renderingBackends.push('angle_enable_wgpu=false');
 
-					final targetConfigX64:Config = getDefaultTargetPlatform();
+					final targetConfigX64:Config = gtDefaultTargetPlatform();
 					targetConfigX64.os = 'win';
 					targetConfigX64.cpu = 'x64';
 					targetConfigX64.args = targetConfigX64.args.concat(renderingBackends);
