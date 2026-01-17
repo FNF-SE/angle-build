@@ -15,9 +15,9 @@ jobs:
       - name: Build Angle
         run: haxe build.hxml
 
-      # - name: Upload Artifact
-      #   uses: actions/upload-artifact@main
-      #   with:
-      #     name: Windows
-      #     path: LuaJIT/build
-      #     if-no-files-found: warn
+      - name: Upload Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: Angle-Windows-Build
+          path: export/build
+          if-no-files-found: warn

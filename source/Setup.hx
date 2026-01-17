@@ -14,76 +14,69 @@ class Setup
 	public static function run():Void
 	{
 		if (Sys.systemName() == 'Windows')
-			Sys.putEnv('DEPOT_TOOLS_WIN_TOOLCHAIN', '0');
-
-		if (!ProcessUtil.commandExists('git'))
 		{
-			Sys.println(ANSIUtil.apply('Git is not installed. Please install it first.', [ANSICode.Bold, ANSICode.Red]));
-			Sys.exit(1);
+			// We need to set DEPOT_TOOLS_WIN_TOOLCHAIN to 0 for non-Googlers.
+			Sys.putEnv('DEPOT_TOOLS_WIN_TOOLCHAIN', '0');
 		}
 
+		// Surpress Chromium development Git warnings.
+		Sys.command('git', ['config', '--global', 'depot-tools.allowGlobalGitConfig', 'false']);
+
+		// Create the export folder.
 		if (!FileSystem.exists('export'))
 			FileSystem.createDirectory('export');
 
+		// Go to the export folder.
 		FileUtil.moveToDir('export');
 
-		if (FileSystem.exists('angle') && FileSystem.exists('depot_tools'))
-		{
-			// Add depot_tools to PATH.
-			addToPATH(FileSystem.absolutePath('depot_tools'));
-			return;
-		}
+		// Print
+		Sys.println(ANSIUtil.apply('Angle setup starting...', [ANSICode.Bold, ANSICode.Blue]));
 
-		// Clone or Update depot_tools.
-		clone('depot_tools', 'https://chromium.googlesource.com/chromium/tools/depot_tools.git');
+		// Clone depot_tools.
+		gitClone('depot_tools', 'https://chromium.googlesource.com/chromium/tools/depot_tools.git');
 
 		// Add depot_tools to PATH.
 		addToPATH(FileSystem.absolutePath('depot_tools'));
 
-		// Clone or Update angle.
-		clone('angle', 'https://chromium.googlesource.com/angle/angle');
+		// Clone angle.
+		gitClone('angle', 'https://chromium.googlesource.com/angle/angle');
 
 		// Configure and sync ANGLE dependencies
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
 			// Configure and sync ANGLE dependencies
-			Sys.println(ANSIUtil.apply('Configuring gclient...', [ANSICode.Bold, ANSICode.Blue]));
-
 			Sys.command('gclient', ['config', '--unmanaged', 'https://chromium.googlesource.com/angle/angle']);
 
-			// Create a .gclient file with proper setup
-			Sys.println(ANSIUtil.apply('Configuring `.gclient` file...', [ANSICode.Bold, ANSICode.Blue]));
-
-			final gclientFile:Array<String> = [];
-
-			gclientFile.push('solutions = [');
-			gclientFile.push('  {');
-			gclientFile.push('     "name": ".",');
-			gclientFile.push('     "url": "https://chromium.googlesource.com/angle/angle",');
-			gclientFile.push('     "deps_file": "DEPS",');
-			gclientFile.push('     "managed": False,');
-			gclientFile.push('  }');
-			gclientFile.push(']');
-
-			File.saveContent('.gclient', gclientFile.join('\n'));
+			{
+				// Create a .gclient file with proper setup
+				final gclientFile:Array<String> = [];
+				gclientFile.push('solutions = [');
+				gclientFile.push('  {');
+				gclientFile.push('     "name": ".",');
+				gclientFile.push('     "url": "https://chromium.googlesource.com/angle/angle",');
+				gclientFile.push('     "deps_file": "DEPS",');
+				gclientFile.push('     "managed": False,');
+				gclientFile.push('  }');
+				gclientFile.push(']');
+				File.saveContent('.gclient', gclientFile.join('\n'));
+			}
 
 			// Syncing ANGLE dependencies with gclient...
 			Sys.command('gclient', ['sync', '--no-history', '--shallow', '--jobs', '8']);
-
-			Sys.println(ANSIUtil.apply('ANGLE setup complete!', [ANSICode.Bold, ANSICode.Blue]));
 		});
+
+		// Print
+		Sys.println(ANSIUtil.apply('Angle setup complete!', [ANSICode.Bold, ANSICode.Blue]));
 	}
 
-	static function clone(name:String, url:String):Void
+	@:noCompletion
+	static function gitClone(name:String, url:String):Void
 	{
 		if (!FileSystem.exists(name))
-		{
-			Sys.println(ANSIUtil.apply('Cloning $name...', [ANSICode.Bold, ANSICode.Blue]));
-
-			Sys.command('git', ['clone', '--depth', '1', url]);
-		}
+			Sys.command('git', ['clone', '-q', '--depth', '1', url]);
 	}
 
+	@:noCompletion
 	static function addToPATH(string:String):Void
 	{
 		if (Path.isAbsolute(string))

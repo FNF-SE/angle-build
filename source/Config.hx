@@ -14,7 +14,12 @@ class Config
 
 	public function getExportPath():String
 	{
-		return environment.length > 0 ? 'out/$os-$cpu-$environment' : 'out/$os-$cpu';
+		return 'out/${getExportName()}';
+	}
+
+	public function getExportName():String
+	{
+		return environment.length > 0 ? '$os-$cpu-$environment' : '$os-$cpu';
 	}
 
 	public function getAngleArgs():String
