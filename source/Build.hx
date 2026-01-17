@@ -109,6 +109,7 @@ class Build
 					renderingBackends.push('angle_enable_null=false');
 					renderingBackends.push('angle_enable_vulkan=true');
 					renderingBackends.push('angle_enable_wgpu=false');
+					renderingBackends.push('angle_use_custom_libvulkan=false');
 
 					final targetConfigX64:Config = getDefaultTargetPlatform();
 					targetConfigX64.os = 'win';
