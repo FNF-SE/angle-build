@@ -64,6 +64,9 @@ class Build
 
 				File.saveContent(Path.join([targetConfig.getExportPath(), 'args.gn']), targetConfig.getAngleArgs().split(' ').join('\n'));
 
+				if (buildPlatform == 'linux' && targetConfig.cpu == 'arm64')
+					Sys.command('python', ['build/linux/sysroot_scripts/install-sysroot.py', '--arch=arm64']);
+
 				if (Sys.command('gn', ['gen', targetConfig.getExportPath()]) != 0)
 				{
 					Sys.println(ANSIUtil.apply('Failed to build ${targetConfig.os}-${targetConfig.cpu}.', [ANSICode.Bold, ANSICode.Red]));
@@ -115,40 +118,57 @@ class Build
 		{
 			switch (buildPlatform)
 			{
-				case 'windows':
+				case 'windows' | 'linux':
 					final renderingBackends:Array<String> = [];
 
-					renderingBackends.push('angle_enable_d3d9=false');        // Disable D3D9 backend
-					renderingBackends.push('angle_enable_d3d11=false');       // Disable D3D11 backend
-					renderingBackends.push('angle_enable_gl=false');          // Disable OpenGL backend
-					renderingBackends.push('angle_enable_metal=false');       // Disable Metal backend
-					renderingBackends.push('angle_enable_null=false');        // Disable Null backend
-					renderingBackends.push('angle_enable_wgpu=false');        // Disable WebGPU backend
+					renderingBackends.push('angle_enable_d3d9=false'); // Disable D3D9 backend
+					renderingBackends.push('angle_enable_d3d11=false'); // Disable D3D11 backend
+					renderingBackends.push('angle_enable_gl=false'); // Disable OpenGL backend
+					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
+					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
+					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
 
 					renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
 
-					renderingBackends.push('angle_enable_vulkan=true');                    // Enable Vulkan backend
-					renderingBackends.push('angle_enable_vulkan_api_dump_layer=false');    // Disable Vulkan API dump layer
+					renderingBackends.push('angle_enable_vulkan=true'); // Enable Vulkan backend
+					renderingBackends.push('angle_enable_vulkan_api_dump_layer=false'); // Disable Vulkan API dump layer
 					renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
-					renderingBackends.push('angle_use_custom_libvulkan=false');            // Use system Vulkan loader only
+					renderingBackends.push('angle_use_custom_libvulkan=false'); // Use system Vulkan loader only
 
-					final targetConfigX64:Config = getDefaultTargetPlatform();
-					targetConfigX64.os = 'win';
-					targetConfigX64.cpu = 'x64';
-					targetConfigX64.args = targetConfigX64.args.concat(renderingBackends);
-					targetConfigs.push(targetConfigX64);
+					if (buildPlatform == 'windows')
+					{
+						final targetConfigX64:Config = getDefaultTargetPlatform();
+						targetConfigX64.os = 'win';
+						targetConfigX64.cpu = 'x64';
+						targetConfigX64.args = targetConfigX64.args.concat(renderingBackends);
+						targetConfigs.push(targetConfigX64);
 
-					final targetConfigARM64:Config = getDefaultTargetPlatform();
-					targetConfigARM64.os = 'win';
-					targetConfigARM64.cpu = 'arm64';
-					targetConfigARM64.args = targetConfigARM64.args.concat(renderingBackends);
-					targetConfigs.push(targetConfigARM64);
+						final targetConfigARM64:Config = getDefaultTargetPlatform();
+						targetConfigARM64.os = 'win';
+						targetConfigARM64.cpu = 'arm64';
+						targetConfigARM64.args = targetConfigARM64.args.concat(renderingBackends);
+						targetConfigs.push(targetConfigARM64);
 
-					final targetConfigX86:Config = getDefaultTargetPlatform();
-					targetConfigX86.os = 'win';
-					targetConfigX86.cpu = 'x86';
-					targetConfigX86.args = targetConfigX86.args.concat(renderingBackends);
-					targetConfigs.push(targetConfigX86);
+						final targetConfigX86:Config = getDefaultTargetPlatform();
+						targetConfigX86.os = 'win';
+						targetConfigX86.cpu = 'x86';
+						targetConfigX86.args = targetConfigX86.args.concat(renderingBackends);
+						targetConfigs.push(targetConfigX86);
+					}
+					else
+					{
+						final targetConfigX64:Config = getDefaultTargetPlatform();
+						targetConfigX64.os = 'linux';
+						targetConfigX64.cpu = 'x64';
+						targetConfigX64.args = targetConfigX64.args.concat(renderingBackends);
+						targetConfigs.push(targetConfigX64);
+
+						final targetConfigARM64:Config = getDefaultTargetPlatform();
+						targetConfigARM64.os = 'linux';
+						targetConfigARM64.cpu = 'arm64';
+						targetConfigARM64.args = targetConfigARM64.args.concat(renderingBackends);
+						targetConfigs.push(targetConfigARM64);
+					}
 			}
 		}
 
