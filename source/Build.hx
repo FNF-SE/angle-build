@@ -18,6 +18,9 @@ class Build
 		// Get the defined build platform.
 		buildPlatform = Platform.getBuildPlatform();
 
+		// Create the build dir.
+		FileUtil.createDirectory('build');
+
 		// Start the building proccess.
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
@@ -51,32 +54,38 @@ class Build
 					Sys.exit(1);
 				}
 
-				Sys.command('autoninja', ['-C', targetConfig.getExportPath(), 'libGLESv2', 'libEGL']);
-
-				FileUtil.createDirectory('build');
-
-				switch (buildPlatform)
+				if (Sys.command('autoninja', ['-C', targetConfig.getExportPath(), 'libGLESv2', 'libEGL']) == 0)
 				{
-					case 'windows':
-						FileUtil.createDirectory('build/${targetConfig.getExportName()}/include');
+					switch (buildPlatform)
+					{
+						case 'windows':
+							final absBuildDir:String = Path.normalize(FileSystem.absolutePath('../build'));
+		
+							FileUtil.createDirectory('$absBuildDir/${targetConfig.getExportName()}/include');
 
-						FileUtil.copyDirectory('angle/include', 'build/${targetConfig.getExportName()}/include');
+							FileUtil.copyDirectory('include', '$absBuildDir/${targetConfig.getExportName()}/include');
 
-						for (file in FileSystem.readDirectory('angle/${targetConfig.getExportPath()}'))
-						{
-							if (Path.extension(file) == 'lib')
+							for (file in FileSystem.readDirectory(targetConfig.getExportPath()))
 							{
-								FileUtil.createDirectory('build/${targetConfig.getExportName()}/lib');
+								if (Path.extension(file) == 'lib')
+								{
+									FileUtil.createDirectory('$absBuildDir/${targetConfig.getExportName()}/lib');
 
-								File.copy('angle/${targetConfig.getExportPath()}/$file', 'build/${targetConfig.getExportName()}/lib/$file');
-							}
-							else if (Path.extension(file) == 'dll')
-							{
-								FileUtil.createDirectory('build/${targetConfig.getExportName()}/bin');
+									File.copy('${targetConfig.getExportPath()}/$file', '$absBuildDir/${targetConfig.getExportName()}/lib/$file');
+								}
+								else if (Path.extension(file) == 'dll')
+								{
+									FileUtil.createDirectory('$absBuildDir/${targetConfig.getExportName()}/bin');
 
-								File.copy('angle/${targetConfig.getExportPath()}/$file', 'build/${targetConfig.getExportName()}/bin/$file');
+									File.copy('${targetConfig.getExportPath()}/$file', '$absBuildDir/${targetConfig.getExportName()}/bin/$file');
+								}
 							}
-						}
+					}
+					else
+					{
+						Sys.println(ANSIUtil.apply('Failed to build ${targetConfig.os}-${targetConfig.cpu}.', [ANSICode.Bold, ANSICode.Red]));
+						Sys.exit(1);
+					}
 				}
 			}
 		});
