@@ -60,7 +60,7 @@ class Build
 					{
 						case 'windows':
 							final absBuildDir:String = Path.normalize(FileSystem.absolutePath('../build'));
-		
+
 							FileUtil.createDirectory('$absBuildDir/${targetConfig.getExportName()}/include');
 
 							FileUtil.copyDirectory('include', '$absBuildDir/${targetConfig.getExportName()}/include');
@@ -102,14 +102,17 @@ class Build
 				case 'windows':
 					final renderingBackends:Array<String> = [];
 
-					renderingBackends.push('angle_enable_d3d11=true');
-					renderingBackends.push('angle_enable_d3d9=false');
-					renderingBackends.push('angle_enable_gl=false');
-					renderingBackends.push('angle_enable_metal=false');
-					renderingBackends.push('angle_enable_null=false');
-					renderingBackends.push('angle_enable_vulkan=true');
-					renderingBackends.push('angle_enable_wgpu=false');
-					renderingBackends.push('angle_use_custom_libvulkan=false');
+					renderingBackends.push('angle_enable_d3d9=false');  // Disable D3D9 backend
+					renderingBackends.push('angle_enable_gl=false');    // Disable OpenGL backend
+					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
+					renderingBackends.push('angle_enable_null=false');  // Disable Null backend
+					renderingBackends.push('angle_enable_wgpu=false');  // Disable WebGPU backend
+
+					renderingBackends.push('angle_enable_d3d11=true');                     // Enable D3D11 backend
+					renderingBackends.push('angle_enable_vulkan=true');                    // Enable Vulkan backend
+					renderingBackends.push('angle_enable_vulkan_api_dump_layer=false');    // Disable Vulkan API dump layer
+					renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
+					renderingBackends.push('angle_use_custom_libvulkan=false');            // Use system Vulkan loader only
 
 					final targetConfigX64:Config = getDefaultTargetPlatform();
 					targetConfigX64.os = 'win';
@@ -157,6 +160,7 @@ class Build
 		targetConfig.args.push('angle_build_all=false');
 		targetConfig.args.push('angle_build_tests=false');
 		targetConfig.args.push('angle_has_frame_capture=false');
+		targetConfig.args.push('angle_has_histograms=false');
 		targetConfig.args.push('angle_standalone=true');
 	}
 
