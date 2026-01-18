@@ -49,7 +49,7 @@ class Build
 				File.saveContent('chrome/VERSION', chromeFileContent.join('\n'));
 			}
 
-			final absBuildDir:String = Path.normalize(FileSystem.absolutePath('../build'));
+			final absBuildDir:String = FileSystem.fullPath('../build');
 
 			for (headersFolder in ANGLE_HEADERS_FOLDERS)
 				FileUtil.copyDirectory('include/$headersFolder', '$absBuildDir/$buildPlatform/include/$headersFolder');
