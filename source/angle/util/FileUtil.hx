@@ -1,4 +1,4 @@
-package util;
+package angle.util;
 
 import haxe.io.Path;
 import sys.FileSystem;

@@ -1,12 +1,12 @@
-package;
+package angle;
 
 import haxe.io.Path;
 
 import sys.FileSystem;
 import sys.io.File;
 
-import util.ANSIUtil;
-import util.FileUtil;
+import angle.util.ANSIUtil;
+import angle.util.FileUtil;
 
 class Setup
 {

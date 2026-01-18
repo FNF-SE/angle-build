@@ -1,12 +1,12 @@
-package;
+package angle;
+
+import angle.util.ANSIUtil;
+import angle.util.FileUtil;
 
 import haxe.io.Path;
 
 import sys.FileSystem;
 import sys.io.File;
-
-import util.ANSIUtil;
-import util.FileUtil;
 
 using StringTools;
 
@@ -22,7 +22,7 @@ class Build
 	static var buildPlatform:String = '';
 
 	@:noCompletion
-	static var buildConfigs:Array<Config>;
+	static var buildConfigs:Array<Config> = [];
 
 	public static function run():Void
 	{
@@ -35,10 +35,10 @@ class Build
 		// Create the build dir.
 		FileUtil.createDirectory('build');
 
-		// Start the building proccess.
+		// Print
 		Sys.println(ANSIUtil.apply('Angle build started...', [ANSICode.Bold, ANSICode.Blue]));
 
-		// Go and back from the angle directory.
+		// Start the building proccess.
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
 			if (Sys.systemName() == 'Linux')
@@ -110,7 +110,7 @@ class Build
 
 						Sys.command('install_name_tool', ['-id', '@rpath/$lib.dylib', libDestination]);
 
-						libsToCombine.get(lib).push(libDestination);
+						libsToCombine.get(lib)?.push(libDestination);
 					case 'ios':
 						if (!libsToCombine.exists(lib))
 							libsToCombine.set(lib, new Array<String>());
@@ -119,7 +119,7 @@ class Build
 
 						FileUtil.copyDirectory('angle/${buildConfig.getExportPath()}/$lib.framework', libDestination);
 
-						libsToCombine.get(lib).push(libDestination);
+						libsToCombine.get(lib)?.push(libDestination);
 				}
 			}
 		}
@@ -158,11 +158,12 @@ class Build
 			}
 		}
 
-		// The building proccess finished.
+		// Print
 		Sys.println(ANSIUtil.apply('Angle build complete!', [ANSICode.Bold, ANSICode.Green]));
 	}
 
-	public static function getBuildConfig():Array<Config>
+	@:noCompletion
+	static function getBuildConfig():Array<Config>
 	{
 		final targetConfigs:Array<Config> = [];
 
@@ -179,7 +180,6 @@ class Build
 					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
 					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
 					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
-
 					renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
 
 					renderingBackends.push('angle_enable_vulkan=true'); // Enable Vulkan backend
@@ -276,7 +276,8 @@ class Build
 		return targetConfigs;
 	}
 
-	public static function addAngleBuildOptimization(targetConfig:Config):Void
+	@:noCompletion
+	static function addAngleBuildOptimization(targetConfig:Config):Void
 	{
 		targetConfig.args.push('build_with_chromium=false');
 		targetConfig.args.push('chrome_pgo_phase=0');
@@ -287,11 +288,15 @@ class Build
 
 		targetConfig.args.push('is_debug=false');
 		targetConfig.args.push('is_official_build=true');
-		targetConfig.args.push('strip_debug_info=true');
+
+		if (buildPlatform != 'ios')
+			targetConfig.args.push('strip_debug_info=true');
+
 		targetConfig.args.push('symbol_level=0');
 	}
 
-	public static function addAngleClangSetup(targetConfig:Config):Void
+	@:noCompletion
+	static function addAngleClangSetup(targetConfig:Config):Void
 	{
 		targetConfig.args.push('is_clang=true');
 		targetConfig.args.push('clang_use_chrome_plugins=false');
@@ -301,7 +306,8 @@ class Build
 			targetConfig.args.push('ios_enable_code_signing=false');
 	}
 
-	public static function addAngleSetup(targetConfig:Config):Void
+	@:noCompletion
+	static function addAngleSetup(targetConfig:Config):Void
 	{
 		targetConfig.args.push('angle_assert_always_on=false');
 		targetConfig.args.push('angle_build_all=false');
@@ -312,7 +318,8 @@ class Build
 		targetConfig.args.push('angle_standalone=true');
 	}
 
-	public static function getDefaultTargetPlatform():Config
+	@:noCompletion
+	static function getDefaultTargetPlatform():Config
 	{
 		final targetConfig:Config = new Config();
 

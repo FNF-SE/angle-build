@@ -1,4 +1,4 @@
-package util;
+package angle.util;
 
 /**
  * Enum abstract representing ANSI codes for text colors, background colors, and text styles.
@@ -88,7 +88,7 @@ class ANSIUtil
 	}
 
 	@:noCompletion
-	private static function stripCodes(output:String):String
+	static function stripCodes(output:String):String
 	{
 		if (codesSupported == null)
 		{

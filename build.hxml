@@ -2,3 +2,4 @@
 --main Main
 --class-path source
 --define analyzer-optimize
+--macro nullSafety('angle')

@@ -1,4 +1,4 @@
-package;
+package angle;
 
 class Config
 {
