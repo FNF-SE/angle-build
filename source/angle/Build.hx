@@ -85,8 +85,11 @@ class Build
 		for (headersFolder in ANGLE_HEADERS_FOLDERS)
 			FileUtil.copyDirectory('angle/include/$headersFolder', 'build/$buildPlatform/include/$headersFolder');
 
-		// The libs that will be made an universal version of.
-		final libsToCombine:Map<String, Array<String>> = [];
+		// The macos libs that will be made an universal version of.
+		final macosLibsToCombine:Map<String, Array<String>> = [];
+
+		// The ios frameworks that will be made an universal version of based on the enviroment.
+		final iosFrameworksToCombine:Map<String, Map<String, Array<String>>> = [];
 
 		// Copy angle's libs.
 		for (buildConfig in buildConfigs)
@@ -101,54 +104,96 @@ class Build
 					case 'linux':
 						FileUtil.copyFile('angle/${buildConfig.getExportPath()}/$lib.so', 'build/$buildPlatform/lib/${buildConfig.cpu}/$lib.so');
 					case 'macos':
-						if (!libsToCombine.exists(lib))
-							libsToCombine.set(lib, new Array<String>());
+						if (!macosLibsToCombine.exists(lib))
+							macosLibsToCombine.set(lib, new Array<String>());
 
 						final libDestination:String = 'build/$buildPlatform/lib/${buildConfig.cpu}/$lib.dylib';
 
-						FileUtil.copyFile('angle/${buildConfig.getExportPath()}/$lib.dylib', libDestination);
+						{
+							FileUtil.copyFile('angle/${buildConfig.getExportPath()}/$lib.dylib', libDestination);
 
-						Sys.command('install_name_tool', ['-id', '@rpath/$lib.dylib', libDestination]);
+							Sys.command('install_name_tool', ['-id', '@rpath/$lib.dylib', libDestination]);
+						}
 
-						libsToCombine.get(lib)?.push(libDestination);
+						macosLibsToCombine.get(lib)?.push(libDestination);
 					case 'ios':
-						if (!libsToCombine.exists(lib))
-							libsToCombine.set(lib, new Array<String>());
+						if (!iosFrameworksToCombine.exists(lib))
+							iosFrameworksToCombine.set(lib, []);
+
+						@:nullSafety(Off)
+						if (!iosFrameworksToCombine.get(lib)?.exists(buildConfig.environment))
+							iosFrameworksToCombine.get(lib)?.set(buildConfig.environment, new Array<String>());
 
 						final libDestination:String = 'build/$buildPlatform/lib/${buildConfig.environment}/${buildConfig.cpu}/$lib.framework';
 
 						FileUtil.copyDirectory('angle/${buildConfig.getExportPath()}/$lib.framework', libDestination);
 
-						libsToCombine.get(lib)?.push(libDestination);
+						iosFrameworksToCombine.get(lib)?.get(buildConfig.environment)?.push(libDestination);
 				}
 			}
 		}
 
 		if (buildPlatform == 'macos')
 		{
-			for (key => value in libsToCombine)
+			for (libName => libsPaths in macosLibsToCombine)
 			{
-				final universalLibDestination:String = 'build/$buildPlatform/lib/universal/$key.dylib';
+				final universalLibDestination:String = 'build/$buildPlatform/lib/universal/$libName.dylib';
 
 				FileUtil.createDirectory(Path.directory(universalLibDestination));
 
-				if (Sys.command('lipo', ['-create', '-output', universalLibDestination].concat(value)) == 0)
-					Sys.command('install_name_tool', ['-id', '@rpath/$key.dylib', universalLibDestination]);
+				if (Sys.command('lipo', ['-create', '-output', universalLibDestination].concat(libsPaths)) == 0)
+					Sys.command('install_name_tool', ['-id', '@rpath/$libName.dylib', universalLibDestination]);
 				else
-					Sys.println(ANSIUtil.apply('Failed to create universal lib for "$key".', [ANSICode.Bold, ANSICode.Yellow]));
+					Sys.println(ANSIUtil.apply('Failed to create universal lib for "$libName".', [ANSICode.Bold, ANSICode.Yellow]));
 			}
 		}
 		else if (buildPlatform == 'ios')
 		{
-			for (key => value in libsToCombine)
+			final iosFrameworksToXCFramework:Map<String, Array<String>> = [];
+
+			for (libName => libEnviroment in iosFrameworksToCombine)
 			{
-				final universalFrameworkDestination:String = 'build/$buildPlatform/lib/universal/$key.xcframework';
+				if (!iosFrameworksToXCFramework.exists(libName))
+					iosFrameworksToXCFramework.set(libName, new Array<String>());
+
+				for (libEnviromentName => libEnviromentLibs in libEnviroment)
+				{
+					if (libEnviromentLibs.length >= 2)
+					{
+						final universalLibDestination:String = 'build/$buildPlatform/lib/$libEnviromentName/universal/$libName.framework/$libName';
+
+						FileUtil.createDirectory(Path.directory(universalLibDestination));
+
+						{
+							final frameworksToMerge:Array<String> = [];
+
+							for (framework in libEnviromentLibs)
+								frameworksToMerge.push('$framework/$libName');
+
+							if (Sys.command('lipo', ['-create', '-output', universalLibDestination].concat(libEnviromentLibs)) == 0)
+								Sys.command('install_name_tool', ['-id', '@rpath/$libName.dylib', universalLibDestination]);
+							else
+								Sys.println(ANSIUtil.apply('Failed to create universal lib for "$libName".', [ANSICode.Bold, ANSICode.Yellow]));
+						}
+
+						iosFrameworksToXCFramework.get(libName)?.push(universalLibDestination);
+					}
+					else
+					{
+						iosFrameworksToXCFramework.get(libName)?.push(libEnviromentLibs[0]);
+					}
+				}
+			}
+
+			for (frameworkName => frameworkPaths in iosFrameworksToXCFramework)
+			{
+				final universalFrameworkDestination:String = 'build/$buildPlatform/lib/universal/$frameworkName.xcframework';
 
 				FileUtil.createDirectory(Path.directory(universalFrameworkDestination));
 
 				final frameworksToMerge:Array<String> = [];
 
-				for (framework in value)
+				for (framework in frameworkPaths)
 				{
 					frameworksToMerge.push('-framework');
 					frameworksToMerge.push(framework);
@@ -288,10 +333,7 @@ class Build
 
 		targetConfig.args.push('is_debug=false');
 		targetConfig.args.push('is_official_build=true');
-
-		if (buildPlatform != 'ios')
-			targetConfig.args.push('strip_debug_info=true');
-
+		targetConfig.args.push('strip_debug_info=true');
 		targetConfig.args.push('symbol_level=0');
 	}
 
