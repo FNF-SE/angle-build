@@ -1,10 +1,15 @@
 name: Build-Angle
+
 on:
   push:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: write
 jobs:
   Windows:
     runs-on: windows-2022
@@ -89,3 +94,27 @@ jobs:
           name: angle-ios-libs
           path: export/build/ios
           if-no-files-found: warn
+  Release:
+    name: Create Nightly Release
+    needs: [Windows, MacOS, Linux, iOS]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          echo "tag=angle-nightly-$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ANGLE Nightly ${{ steps.tag.outputs.tag }}
+          files: |
+            artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
