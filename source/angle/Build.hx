@@ -414,8 +414,7 @@ class Build
 		{
 			targetConfig.args.push('android_sdk_root=getenv("ANDROID_HOME")');
 			targetConfig.args.push('android_ndk_root=getenv("ANDROID_NDK_HOME")');
-			targetConfig.args.push('android_sdk_version=0');
-			targetConfig.args.push('android_ndk_version=0');
+			targetConfig.args.push('android_use_ndk=true');
 		}
 	}
 
