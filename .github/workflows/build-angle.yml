@@ -84,8 +84,6 @@ jobs:
 
       - name: Build Angle
         run: haxe build.hxml --define buildPlatform=android
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@main
