@@ -232,7 +232,14 @@ class Build
 					final renderingBackends:Array<String> = [];
 
 					renderingBackends.push('angle_enable_d3d9=false'); // Disable D3D9 backend
-					renderingBackends.push('angle_enable_gl=false'); // Disable OpenGL backend
+					if (buildPlatform != 'windows')
+					{
+						renderingBackends.push('angle_enable_gl=true'); // Enable OpenGL backend
+					}
+					else
+					{
+						renderingBackends.push('angle_enable_gl=false'); // Disable OpenGL backend
+					}
 					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
 					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
 					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
@@ -413,7 +420,7 @@ class Build
 		if (buildPlatform == 'ios')
 			targetConfig.args.push('ios_enable_code_signing=false');
 		else if (buildPlatform == 'android')
-			targetConfig.args.push('android_ndk_api_level=29');
+			targetConfig.args.push('android_ndk_api_level=24');
 	}
 
 	@:noCompletion
