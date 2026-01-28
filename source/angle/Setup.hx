@@ -62,6 +62,31 @@ class Setup
 
 			// Syncing ANGLE dependencies with gclient...
 			Sys.command('gclient', ['sync', '--no-history', '--shallow', '--jobs', '8']);
+
+			// For some reason gclient does not add some stuff so we have to clone it ourselves.
+			FileUtil.goAndBackFromDir('third_party', function():Void
+			{
+				if (!FileSystem.exists('android_sdk/BUILD.gn'))
+				{
+					FileUtil.deletePath('android_sdk');
+					Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/android_sdk']);
+				}
+
+				if (!FileSystem.exists('ijar/BUILD.gn'))
+				{
+					FileUtil.deletePath('ijar');
+					Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/ijar']);
+				}
+
+				FileUtil.goAndBackFromDir('cpu_features', function():Void
+				{
+					if (!FileSystem.exists('src/cpu-features'))
+					{
+						FileUtil.deletePath('src');
+						Sys.command('git', ['clone', 'https://github.com/google/cpu_features', 'src', '-b', 'v0.8.0']);
+					}
+				});
+			});
 			
 			var check = Sys.command('git', ['apply', '--check', '../../patches/0001-bend-OpenGL-and-Vulkan-rules-for-MAX_TEXTURE_SIZE.patch']);
 			if (check == 0)
