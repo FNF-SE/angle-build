@@ -113,7 +113,7 @@ index b074753..1ff639b 100644
 +                config.maxPBufferHeight  = 16384;
                  config.maxPBufferPixels =
 -                    rendererCaps.max2DTextureSize * rendererCaps.max2DTextureSize;
-+                    16384u * 16384u;
++                    16384 * 16384;
                  config.maxSwapInterval  = 4;
                  config.minSwapInterval  = 0;
                  config.nativeRenderable = EGL_FALSE;
@@ -153,7 +153,7 @@ index c81d071..993808b 100644
 +                    config.maxPBufferHeight  = 16384;
                      config.maxPBufferPixels =
 -                        rendererCaps.max2DTextureSize * rendererCaps.max2DTextureSize;
-+                        16384u * 16384u;
++                        16384 * 16384;
                      config.maxSwapInterval  = maxSwapInterval;
                      config.minSwapInterval  = minSwapInterval;
                      config.nativeRenderable = EGL_FALSE;
@@ -222,7 +222,7 @@ index 4102464..1254db6 100644
      mNativeCaps.maxCubeMapTextureSize = rx::LimitToInt(limitsVk.maxImageDimensionCube);
      mNativeCaps.maxRenderbufferSize =
 -        std::min({limitsVk.maxImageDimension2D, limitsVk.maxFramebufferWidth,
-+        std::min({16384, limitsVk.maxFramebufferWidth,
++        std::min({uint32_t(16384), limitsVk.maxFramebufferWidth,
                    limitsVk.maxFramebufferHeight});
      mNativeCaps.minAliasedPointSize = std::max(1.0f, limitsVk.pointSizeRange[0]);
      mNativeCaps.maxAliasedPointSize = limitsVk.pointSizeRange[1];
