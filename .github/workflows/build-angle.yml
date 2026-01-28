@@ -1,4 +1,4 @@
-name: Build-Angle
+name: Build Angle
 
 on:
   workflow_dispatch:
