@@ -1,20 +1,86 @@
-From 8d411886253ec04fe51c28a994e5baefd986b1dd Mon Sep 17 00:00:00 2001
+From e3ed2f0029fce701919809369392c0d70cf5e210 Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
-Date: Tue, 27 Jan 2026 21:31:41 +0300
-Subject: [PATCH] bend OpenGL and Vulkan rules for `MAX_TEXTURE_SIZE`.
+Date: Wed, 28 Jan 2026 19:48:11 +0300
+Subject: [PATCH] bend ANGLE rules for `MAX_TEXTURE_SIZE` unconditionally.
 
+Currently, reaching `MAX_TEXTURE_SIZE` has the effect of a black box. The creation fails and the behavior diverges vastly across backends, Without having the ability to realistically probe what the GPU can do, applications end up losing that capability.
+
+Instead of making guesses, we give the GPU permission to try to create the texture and rely on backend validation and driver behavior that may either accept or reject the operation. It is not a good solution, but this method is a more transparent, consistent, and quite naturally aligned with hardware limits of the present, day than overly conservative clamping.
 ---
- src/libANGLE/ErrorStrings.h                   |  1 -
+ src/libANGLE/Context.cpp                      | 26 ++---
+ src/libANGLE/ErrorStrings.h                   |  2 -
+ .../renderer/d3d/d3d11/Renderer11.cpp         |  6 +-
+ .../renderer/d3d/d3d11/renderer11_utils.cpp   |  4 +-
+ src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp  |  6 +-
+ .../renderer/d3d/d3d9/renderer9_utils.cpp     |  8 +-
  src/libANGLE/renderer/vulkan/CLDeviceVk.cpp   |  4 +-
- .../renderer/vulkan/vk_caps_utils.cpp         | 16 ++--
- src/libANGLE/validationES.cpp                 | 33 +------
+ .../renderer/vulkan/vk_caps_utils.cpp         | 16 +---
+ src/libANGLE/renderer/wgpu/wgpu_utils.cpp     |  2 +-
+ src/libANGLE/validationEGL.cpp                |  4 +-
+ src/libANGLE/validationES.cpp                 | 40 +-------
+ src/libANGLE/validationES1.cpp                |  5 -
  src/libANGLE/validationES2.cpp                | 47 ----------
- src/libANGLE/validationES3.cpp                | 88 +------------------
+ src/libANGLE/validationES3.cpp                | 94 +------------------
  src/libANGLE/validationESEXT.cpp              | 11 +--
- 7 files changed, 12 insertions(+), 188 deletions(-)
+ 15 files changed, 40 insertions(+), 235 deletions(-)
 
+diff --git a/src/libANGLE/Context.cpp b/src/libANGLE/Context.cpp
+index a120b4d..135dd85 100644
+--- a/src/libANGLE/Context.cpp
++++ b/src/libANGLE/Context.cpp
+@@ -2017,10 +2017,10 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
+             *params = mState.getCaps().subPixelBits;
+             break;
+         case GL_MAX_TEXTURE_SIZE:
+-            *params = mState.getCaps().max2DTextureSize;
++            *params = 16384u;
+             break;
+         case GL_MAX_RECTANGLE_TEXTURE_SIZE_ANGLE:
+-            *params = mState.getCaps().maxRectangleTextureSize;
++            *params = 16384u;
+             break;
+         case GL_MAX_CUBE_MAP_TEXTURE_SIZE:
+             *params = mState.getCaps().maxCubeMapTextureSize;
+@@ -4284,18 +4284,18 @@ void Context::initCaps()
+ 
+     if (mWebGLContext && limitations.webGLTextureSizeLimit > 0)
+     {
+-        ANGLE_LIMIT_CAP(caps->max2DTextureSize, limitations.webGLTextureSizeLimit);
+-        ANGLE_LIMIT_CAP(caps->max3DTextureSize, limitations.webGLTextureSizeLimit);
+-        ANGLE_LIMIT_CAP(caps->maxCubeMapTextureSize, limitations.webGLTextureSizeLimit);
+-        ANGLE_LIMIT_CAP(caps->maxArrayTextureLayers, limitations.webGLTextureSizeLimit);
+-        ANGLE_LIMIT_CAP(caps->maxRectangleTextureSize, limitations.webGLTextureSizeLimit);
++        ANGLE_LIMIT_CAP(caps->max2DTextureSize, 16384u);
++        ANGLE_LIMIT_CAP(caps->max3DTextureSize, 16384u);
++        ANGLE_LIMIT_CAP(caps->maxCubeMapTextureSize, 16384u);
++        ANGLE_LIMIT_CAP(caps->maxArrayTextureLayers, 16384u);
++        ANGLE_LIMIT_CAP(caps->maxRectangleTextureSize, 16384u);
+     }
+ 
+-    ANGLE_LIMIT_CAP(caps->max2DTextureSize, IMPLEMENTATION_MAX_2D_TEXTURE_SIZE);
+-    ANGLE_LIMIT_CAP(caps->maxCubeMapTextureSize, IMPLEMENTATION_MAX_CUBE_MAP_TEXTURE_SIZE);
+-    ANGLE_LIMIT_CAP(caps->max3DTextureSize, IMPLEMENTATION_MAX_3D_TEXTURE_SIZE);
+-    ANGLE_LIMIT_CAP(caps->maxArrayTextureLayers, IMPLEMENTATION_MAX_2D_ARRAY_TEXTURE_LAYERS);
+-    ANGLE_LIMIT_CAP(caps->maxRectangleTextureSize, IMPLEMENTATION_MAX_2D_TEXTURE_SIZE);
++    ANGLE_LIMIT_CAP(caps->max2DTextureSize, 16384u);
++    ANGLE_LIMIT_CAP(caps->maxCubeMapTextureSize, 16384u);
++    ANGLE_LIMIT_CAP(caps->max3DTextureSize, 16384u);
++    ANGLE_LIMIT_CAP(caps->maxArrayTextureLayers, 16384u);
++    ANGLE_LIMIT_CAP(caps->maxRectangleTextureSize, 16384u);
+ 
+     ANGLE_LIMIT_CAP(caps->maxShaderUniformBlocks[ShaderType::Vertex],
+                     IMPLEMENTATION_MAX_VERTEX_SHADER_UNIFORM_BUFFERS);
+@@ -4533,7 +4533,7 @@ void Context::initCaps()
+         }
+ 
+         // Pixel 7 MAX_TEXTURE_SIZE is 16K
+-        constexpr GLint max2DTextureSize = 16383;
++        constexpr GLint max2DTextureSize = 16384;
+         INFO() << "Limiting GL_MAX_TEXTURE_SIZE to " << max2DTextureSize;
+         ANGLE_LIMIT_CAP(caps->max2DTextureSize, max2DTextureSize);
+ 
 diff --git a/src/libANGLE/ErrorStrings.h b/src/libANGLE/ErrorStrings.h
-index 15f336c..33709fe 100644
+index 15f336c..fccba43 100644
 --- a/src/libANGLE/ErrorStrings.h
 +++ b/src/libANGLE/ErrorStrings.h
 @@ -576,7 +576,6 @@ inline constexpr const char *kRelativeOffsetTooLarge = "relativeOffset cannot be
@@ -25,8 +91,108 @@ index 15f336c..33709fe 100644
  inline constexpr const char *kRobustResourceInitializationExtensionRequired = "EGL_ANGLE_robust_resource_initialization not enabled.";
  inline constexpr const char *kSamplerFormatMismatch = "Mismatch between texture format and sampler type (signed/unsigned/float/shadow).";
  inline constexpr const char *kSamplesOutOfRange = "Samples value is negative or greater than maximum supported value for the format.";
+@@ -626,7 +625,6 @@ inline constexpr const char *kTextureTargetMismatchWithLabel = "Textarget must m
+ inline constexpr const char *kTextureTargetRequiresES31 = "Texture target requires at least OpenGL ES 3.1.";
+ inline constexpr const char *kTextureTypeConflict = "Two textures of different types use the same sampler location.";
+ inline constexpr const char *kTextureTypeMismatch = "Passed in texture type must match the one originally used to define the texture.";
+-inline constexpr const char *kTextureWidthOrHeightOutOfRange = "Width and height must be less than or equal to GL_MAX_TEXTURE_SIZE.";
+ inline constexpr const char *kTextureDepthOutOfRange = "Depth must be less than or equal to MAX_ARRAY_TEXTURE_LAYERS.";
+ inline constexpr const char *kTilingEndCalledWithoutStart = "EndTiling called without corresponding StartTiling.";
+ inline constexpr const char *kTilingStartCalledWithoutEnd = "StartTiling called without corresponding EndTiling.";
+diff --git a/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp b/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
+index b074753..1ff639b 100644
+--- a/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
++++ b/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
+@@ -1366,10 +1366,10 @@ egl::ConfigSet Renderer11::generateConfigs()
+                 config.depthSize         = depthStencilBufferFormatInfo.depthBits;
+                 config.level             = 0;
+                 config.matchNativePixmap = EGL_NONE;
+-                config.maxPBufferWidth   = rendererCaps.max2DTextureSize;
+-                config.maxPBufferHeight  = rendererCaps.max2DTextureSize;
++                config.maxPBufferWidth   = 16384u;
++                config.maxPBufferHeight  = 16384u;
+                 config.maxPBufferPixels =
+-                    rendererCaps.max2DTextureSize * rendererCaps.max2DTextureSize;
++                    16384u * 16384u;
+                 config.maxSwapInterval  = 4;
+                 config.minSwapInterval  = 0;
+                 config.nativeRenderable = EGL_FALSE;
+diff --git a/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp b/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
+index 6cc6949..2549ad0 100644
+--- a/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
++++ b/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
+@@ -1388,7 +1388,7 @@ void GenerateCaps(ID3D11Device *device,
+     // Reserve MAX_UINT for D3D11's primitive restart.
+     caps->maxElementIndex  = static_cast<GLint64>(std::numeric_limits<unsigned int>::max() - 1);
+     caps->max3DTextureSize = GetMaximum3DTextureSize(featureLevel);
+-    caps->max2DTextureSize = GetMaximum2DTextureSize(featureLevel);
++    caps->max2DTextureSize = 16384u;
+     caps->maxCubeMapTextureSize = GetMaximumCubeMapTextureSize(featureLevel);
+     caps->maxArrayTextureLayers = GetMaximum2DTextureArraySize(featureLevel);
+ 
+@@ -1396,7 +1396,7 @@ void GenerateCaps(ID3D11Device *device,
+     caps->maxLODBias = 2.0f;
+ 
+     // No specific limits on render target size, maximum 2D texture size is equivalent
+-    caps->maxRenderbufferSize = caps->max2DTextureSize;
++    caps->maxRenderbufferSize = 16384u;
+ 
+     // Maximum draw buffers and color attachments are the same, max color attachments could
+     // eventually be increased to 16
+diff --git a/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp b/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
+index c81d071..993808b 100644
+--- a/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
++++ b/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
+@@ -554,10 +554,10 @@ egl::ConfigSet Renderer9::generateConfigs()
+                     config.depthSize         = depthStencilBufferFormatInfo.depthBits;
+                     config.level             = 0;
+                     config.matchNativePixmap = EGL_NONE;
+-                    config.maxPBufferWidth   = rendererCaps.max2DTextureSize;
+-                    config.maxPBufferHeight  = rendererCaps.max2DTextureSize;
++                    config.maxPBufferWidth   = 16384u;
++                    config.maxPBufferHeight  = 16384u;
+                     config.maxPBufferPixels =
+-                        rendererCaps.max2DTextureSize * rendererCaps.max2DTextureSize;
++                        16384u * 16384u;
+                     config.maxSwapInterval  = maxSwapInterval;
+                     config.minSwapInterval  = minSwapInterval;
+                     config.nativeRenderable = EGL_FALSE;
+diff --git a/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp b/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
+index 52e9cda..0c9e049 100644
+--- a/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
++++ b/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
+@@ -534,10 +534,10 @@ void GenerateCaps(IDirect3D9 *d3d9,
+     caps->max3DTextureSize = 1;
+ 
+     // Only one limit in GL, use the minimum dimension
+-    caps->max2DTextureSize = std::min(deviceCaps.MaxTextureWidth, deviceCaps.MaxTextureHeight);
++    caps->max2DTextureSize = 16384u;
+ 
+     // D3D treats cube maps as a special case of 2D textures
+-    caps->maxCubeMapTextureSize = caps->max2DTextureSize;
++    caps->maxCubeMapTextureSize = 16384u;
+ 
+     // Array textures are not available in D3D9
+     caps->maxArrayTextureLayers = 1;
+@@ -546,14 +546,14 @@ void GenerateCaps(IDirect3D9 *d3d9,
+     caps->maxLODBias = 0.0f;
+ 
+     // No specific limits on render target size, maximum 2D texture size is equivalent
+-    caps->maxRenderbufferSize = caps->max2DTextureSize;
++    caps->maxRenderbufferSize = 16384u;
+ 
+     // Draw buffers are not supported in D3D9
+     caps->maxDrawBuffers      = 1;
+     caps->maxColorAttachments = 1;
+ 
+     // No specific limits on viewport size, maximum 2D texture size is equivalent
+-    caps->maxViewportWidth  = caps->max2DTextureSize;
++    caps->maxViewportWidth  = 16384u;
+     caps->maxViewportHeight = caps->maxViewportWidth;
+ 
+     // Point size is clamped to 1.0f when the shader model is less than 3
 diff --git a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp b/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
-index b395697..37f1953 100644
+index b395697..a23272d 100644
 --- a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
 +++ b/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
 @@ -177,8 +177,8 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
@@ -35,13 +201,13 @@ index b395697..37f1953 100644
  
 -    info.image2D_MaxWidth  = properties.limits.maxImageDimension2D;
 -    info.image2D_MaxHeight = properties.limits.maxImageDimension2D;
-+    info.image2D_MaxWidth  = 16384;
-+    info.image2D_MaxHeight = 16384;
++    info.image2D_MaxWidth  = 16384u;
++    info.image2D_MaxHeight = 16384u;
      info.image3D_MaxWidth  = properties.limits.maxImageDimension3D;
      info.image3D_MaxHeight = properties.limits.maxImageDimension3D;
      info.image3D_MaxDepth  = properties.limits.maxImageDimension3D;
 diff --git a/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp b/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
-index 4102464..cdf0219 100644
+index 4102464..1254db6 100644
 --- a/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
 +++ b/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
 @@ -658,13 +658,12 @@ void Renderer::ensureCapsInitialized() const
@@ -50,13 +216,13 @@ index 4102464..cdf0219 100644
      mNativeCaps.max3DTextureSize = rx::LimitToInt(limitsVk.maxImageDimension3D);
 -    mNativeCaps.max2DTextureSize =
 -        std::min(limitsVk.maxFramebufferWidth, limitsVk.maxImageDimension2D);
-+    mNativeCaps.max2DTextureSize = uint32_t(16384);
++    mNativeCaps.max2DTextureSize = 16384u;
      mNativeCaps.maxArrayTextureLayers = rx::LimitToInt(limitsVk.maxImageArrayLayers);
      mNativeCaps.maxLODBias            = limitsVk.maxSamplerLodBias;
      mNativeCaps.maxCubeMapTextureSize = rx::LimitToInt(limitsVk.maxImageDimensionCube);
      mNativeCaps.maxRenderbufferSize =
 -        std::min({limitsVk.maxImageDimension2D, limitsVk.maxFramebufferWidth,
-+        std::min({uint32_t(16384), limitsVk.maxFramebufferWidth,
++        std::min({16384u, limitsVk.maxFramebufferWidth,
                    limitsVk.maxFramebufferHeight});
      mNativeCaps.minAliasedPointSize = std::max(1.0f, limitsVk.pointSizeRange[0]);
      mNativeCaps.maxAliasedPointSize = limitsVk.pointSizeRange[1];
@@ -70,7 +236,7 @@ index 4102464..cdf0219 100644
 -    const uint64_t maxDimensionsSquared =
 -        static_cast<uint64_t>(physicalDeviceProperties.limits.maxImageDimension2D) *
 -        static_cast<uint64_t>(physicalDeviceProperties.limits.maxImageDimension2D);
-+    const uint64_t maxDimensionsSquared = 16384ull * 16384ull;
++    const uint64_t maxDimensionsSquared = 16384u * 16384u;
  
      return static_cast<EGLint>(std::min(maxDimensionsSquared, kMaxValueForEGLint));
  }
@@ -80,13 +246,43 @@ index 4102464..cdf0219 100644
      config.matchNativePixmap  = EGL_NONE;
 -    config.maxPBufferWidth    = physicalDeviceProperties.limits.maxImageDimension2D;
 -    config.maxPBufferHeight   = physicalDeviceProperties.limits.maxImageDimension2D;
-+    config.maxPBufferWidth    = 8192;
-+    config.maxPBufferHeight   = 8192;
++    config.maxPBufferWidth    = 16384u;
++    config.maxPBufferHeight   = 16384u;
      config.maxPBufferPixels   = ComputeMaximumPBufferPixels(physicalDeviceProperties);
      config.maxSwapInterval    = 1;
      config.minSwapInterval    = 0;
+diff --git a/src/libANGLE/renderer/wgpu/wgpu_utils.cpp b/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
+index 355ea94..a86293d 100644
+--- a/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
++++ b/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
+@@ -265,7 +265,7 @@ void GenerateCaps(const WGPULimits &limitsWgpu,
+     // OpenGL ES caps
+     glCaps->maxElementIndex       = std::numeric_limits<GLuint>::max() - 1;
+     glCaps->max3DTextureSize      = rx::LimitToInt(limitsWgpu.maxTextureDimension3D);
+-    glCaps->max2DTextureSize      = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
++    glCaps->max2DTextureSize      = 16384u;
+     glCaps->maxArrayTextureLayers = rx::LimitToInt(limitsWgpu.maxTextureArrayLayers);
+     glCaps->maxLODBias            = 0.0f;
+     glCaps->maxCubeMapTextureSize = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+diff --git a/src/libANGLE/validationEGL.cpp b/src/libANGLE/validationEGL.cpp
+index b62b559..179052c 100644
+--- a/src/libANGLE/validationEGL.cpp
++++ b/src/libANGLE/validationEGL.cpp
+@@ -42,10 +42,10 @@ size_t GetMaximumMipLevel(const gl::Context *context, gl::TextureType type)
+         case gl::TextureType::_2D:
+         case gl::TextureType::_2DArray:
+         case gl::TextureType::_2DMultisample:
+-            maxDimension = caps.max2DTextureSize;
++            maxDimension = 16384u;
+             break;
+         case gl::TextureType::Rectangle:
+-            maxDimension = caps.maxRectangleTextureSize;
++            maxDimension = 16384u;
+             break;
+         case gl::TextureType::CubeMap:
+             maxDimension = caps.maxCubeMapTextureSize;
 diff --git a/src/libANGLE/validationES.cpp b/src/libANGLE/validationES.cpp
-index 1f3b77e..d224c68 100644
+index 1f3b77e..3e4de68 100644
 --- a/src/libANGLE/validationES.cpp
 +++ b/src/libANGLE/validationES.cpp
 @@ -1140,18 +1140,12 @@ bool ValidFramebufferTarget(const Context *context, GLenum target)
@@ -120,7 +316,7 @@ index 1f3b77e..d224c68 100644
      }
  
 -    return level <= log2(maxDimension) && level >= 0;
-+    return level <= log2(16384) && level >= 0;
++    return level <= log2(16384u) && level >= 0;
  }
  
  bool ValidImageSizeParameters(const Context *context,
@@ -170,6 +366,36 @@ index 1f3b77e..d224c68 100644
      }
  
      // Do not leak the previous texture format for non-subImage case.
+@@ -8627,13 +8596,6 @@ bool ValidateTexStorageMultisample(const Context *context,
+                                    GLsizei width,
+                                    GLsizei height)
+ {
+-    const Caps &caps = context->getCaps();
+-    if (width > caps.max2DTextureSize || height > caps.max2DTextureSize)
+-    {
+-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kTextureWidthOrHeightOutOfRange);
+-        return false;
+-    }
+-
+     if (samples == 0)
+     {
+         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kSamplesZero);
+diff --git a/src/libANGLE/validationES1.cpp b/src/libANGLE/validationES1.cpp
+index a98ae0d..b8e7d99 100644
+--- a/src/libANGLE/validationES1.cpp
++++ b/src/libANGLE/validationES1.cpp
+@@ -1875,11 +1875,6 @@ bool ValidateFramebufferTexture2DOES(const Context *context,
+         {
+             case TextureTarget::_2D:
+             {
+-                if (level > log2(caps.max2DTextureSize))
+-                {
+-                    ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
+-                    return false;
+-                }
+                 if (tex->getType() != TextureType::_2D)
+                 {
+                     ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidTextureTarget);
 diff --git a/src/libANGLE/validationES2.cpp b/src/libANGLE/validationES2.cpp
 index 66f70c8..b82e078 100644
 --- a/src/libANGLE/validationES2.cpp
@@ -267,7 +493,7 @@ index 66f70c8..b82e078 100644
              ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumInvalid);
              return false;
 diff --git a/src/libANGLE/validationES3.cpp b/src/libANGLE/validationES3.cpp
-index dcd30ee..070cbdf 100644
+index dcd30ee..33e1786 100644
 --- a/src/libANGLE/validationES3.cpp
 +++ b/src/libANGLE/validationES3.cpp
 @@ -489,28 +489,15 @@ bool ValidateES3TexImageParametersBase(const Context *context,
@@ -431,6 +657,19 @@ index dcd30ee..070cbdf 100644
              if (depth % 6 != 0)
              {
                  ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kCubemapInvalidDepth);
+@@ -1673,12 +1591,6 @@ bool ValidateFramebufferTextureLayer(const Context *context,
+         {
+             case TextureType::_2DArray:
+             {
+-                if (level > log2(caps.max2DTextureSize))
+-                {
+-                    ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kFramebufferTextureInvalidMipLevel);
+-                    return false;
+-                }
+-
+                 if (layer >= caps.maxArrayTextureLayers)
+                 {
+                     ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kFramebufferTextureInvalidLayer);
 diff --git a/src/libANGLE/validationESEXT.cpp b/src/libANGLE/validationESEXT.cpp
 index 1771d11..ef97411 100644
 --- a/src/libANGLE/validationESEXT.cpp
@@ -454,5 +693,5 @@ index 1771d11..ef97411 100644
      {
          // Error already generated.
 -- 
-2.47.3
+2.52.0
 

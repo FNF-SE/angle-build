@@ -88,9 +88,9 @@ class Setup
 				});
 			});
 			
-			var check = Sys.command('git', ['apply', '--check', '../../patches/0001-bend-OpenGL-and-Vulkan-rules-for-MAX_TEXTURE_SIZE.patch']);
+			var check = Sys.command('git', ['apply', '--check', '../../patches/0001-bend-ANGLE-rules-for-MAX_TEXTURE_SIZE-unconditionally.patch']);
 			if (check == 0)
-				Sys.command('git', ['apply', '../../patches/0001-bend-OpenGL-and-Vulkan-rules-for-MAX_TEXTURE_SIZE.patch']);
+				Sys.command('git', ['apply', '../../patches/0001-bend-ANGLE-rules-for-MAX_TEXTURE_SIZE-unconditionally.patch']);
 		});
 
 		// Print
