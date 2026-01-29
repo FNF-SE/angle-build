@@ -1,5 +1,7 @@
 package angle.util;
 
+import angle.util.ANSIUtil;
+
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
