@@ -99,8 +99,8 @@ class Build
 		{
 			final libsToCopy:Array<String> = ANGLE_LIBS;
 
-			/*if (buildPlatform == 'windows')
-				libsToCopy.push('d3dcompiler_47');*/
+			if (buildPlatform == 'windows')
+				libsToCopy.push('d3dcompiler_47');
 
 			for (lib in libsToCopy)
 			{
