@@ -1,4 +1,4 @@
-From 619dd4d6ce01bf64eec68bdb9601d5bf4310d045 Mon Sep 17 00:00:00 2001
+From 6c064c8638129bf25f6c7391e2d5599f80d18e3b Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
 Date: Thu, 29 Jan 2026 11:04:57 +0300
 Subject: [PATCH] bend ANGLE rules for `MAX_TEXTURE_SIZE` unconditionally.
@@ -13,6 +13,7 @@ Instead of making guesses, we give the GPU permission to try to create the textu
  .../renderer/d3d/d3d11/renderer11_utils.cpp   |  4 +-
  src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp  |  6 +-
  .../renderer/d3d/d3d9/renderer9_utils.cpp     |  8 +-
+ src/libANGLE/renderer/gl/renderergl_utils.cpp |  2 +-
  src/libANGLE/renderer/vulkan/CLDeviceVk.cpp   |  4 +-
  .../renderer/vulkan/vk_caps_utils.cpp         | 16 +---
  src/libANGLE/renderer/wgpu/wgpu_utils.cpp     | 12 +--
@@ -22,7 +23,7 @@ Instead of making guesses, we give the GPU permission to try to create the textu
  src/libANGLE/validationES2.cpp                | 47 ----------
  src/libANGLE/validationES3.cpp                | 94 +------------------
  src/libANGLE/validationESEXT.cpp              | 11 +--
- 15 files changed, 45 insertions(+), 240 deletions(-)
+ 16 files changed, 46 insertions(+), 241 deletions(-)
 
 diff --git a/src/libANGLE/Context.cpp b/src/libANGLE/Context.cpp
 index a120b4d..3909a73 100644
@@ -191,6 +192,19 @@ index 52e9cda..4458f84 100644
      caps->maxViewportHeight = caps->maxViewportWidth;
  
      // Point size is clamped to 1.0f when the shader model is less than 3
+diff --git a/src/libANGLE/renderer/gl/renderergl_utils.cpp b/src/libANGLE/renderer/gl/renderergl_utils.cpp
+index a2c6e47..2209a89 100644
+--- a/src/libANGLE/renderer/gl/renderergl_utils.cpp
++++ b/src/libANGLE/renderer/gl/renderergl_utils.cpp
+@@ -1882,7 +1882,7 @@ void GenerateCaps(const FunctionsGL *functions,
+     {
+         extensions->textureRectangleANGLE = true;
+         caps->maxRectangleTextureSize =
+-            QuerySingleGLInt(functions, GL_MAX_RECTANGLE_TEXTURE_SIZE_ANGLE);
++            16384;
+     }
+ 
+     // OpenGL 4.3 (and above) and OpenGL ES 3.2 can support all features and constants defined in
 diff --git a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp b/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
 index b395697..37f1953 100644
 --- a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
