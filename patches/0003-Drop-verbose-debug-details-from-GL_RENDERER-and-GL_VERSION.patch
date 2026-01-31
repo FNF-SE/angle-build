@@ -2,7 +2,7 @@ From 5fee5e3e3dcfa5808f2c6c6c6009380aba281bd8 Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
 Date: Sat, 31 Jan 2026 14:17:32 +0300
 Subject: [PATCH 3/3] Drop verbose debug details from `GL_RENDERER` and
- `GL_VERSION`
+ `GL_VERSION`.
 
 ---
  src/libANGLE/Context.cpp                      | 16 ++------------
