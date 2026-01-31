@@ -1,0 +1,187 @@
+From 5fee5e3e3dcfa5808f2c6c6c6009380aba281bd8 Mon Sep 17 00:00:00 2001
+From: Homura <egzozu.be.bas@gmail.com>
+Date: Sat, 31 Jan 2026 14:17:32 +0300
+Subject: [PATCH 3/3] Drop verbose debug details from `GL_RENDERER` and
+ `GL_VERSION`
+
+---
+ src/libANGLE/Context.cpp                      | 16 ++------------
+ .../renderer/d3d/d3d11/Renderer11.cpp         |  9 --------
+ src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp  | 13 ------------
+ src/libANGLE/renderer/gl/DisplayGL.cpp        | 10 +++++----
+ src/libANGLE/renderer/metal/DisplayMtl.mm     |  5 +++--
+ src/libANGLE/renderer/vulkan/vk_renderer.cpp  | 21 -------------------
+ 6 files changed, 11 insertions(+), 63 deletions(-)
+
+diff --git a/src/libANGLE/Context.cpp b/src/libANGLE/Context.cpp
+index 6d2144d..5a9d0d1 100644
+--- a/src/libANGLE/Context.cpp
++++ b/src/libANGLE/Context.cpp
+@@ -3537,23 +3537,13 @@ void Context::initRendererString()
+     }
+     else
+     {
+-        std::string vendorString(mDisplay->getBackendVendorString());
+         std::string rendererString(mDisplay->getBackendRendererDescription());
+-        std::string versionString(mDisplay->getBackendVersionString(!isWebGL()));
+         // Commas are used as a separator in ANGLE's renderer string, so remove commas from each
+         // element.
+-        vendorString.erase(std::remove(vendorString.begin(), vendorString.end(), ','),
+-                           vendorString.end());
+         rendererString.erase(std::remove(rendererString.begin(), rendererString.end(), ','),
+                              rendererString.end());
+-        versionString.erase(std::remove(versionString.begin(), versionString.end(), ','),
+-                            versionString.end());
+         frontendRendererString << "ANGLE (";
+-        frontendRendererString << vendorString;
+-        frontendRendererString << ", ";
+         frontendRendererString << rendererString;
+-        frontendRendererString << ", ";
+-        frontendRendererString << versionString;
+         frontendRendererString << ")";
+     }
+ 
+@@ -3601,8 +3591,7 @@ void Context::initVersionStrings()
+     else
+     {
+         versionString << "OpenGL ES ";
+-        versionString << clientVersion.getMajor() << "." << clientVersion.getMinor() << " (ANGLE "
+-                      << angle::GetANGLEVersionString() << ")";
++        versionString << clientVersion.getMajor() << "." << clientVersion.getMinor() << " (ANGLE)";
+     }
+ 
+     mVersionString = MakeStaticString(versionString.str());
+@@ -3610,8 +3599,7 @@ void Context::initVersionStrings()
+     std::ostringstream shadingLanguageVersionString;
+     shadingLanguageVersionString << "OpenGL ES GLSL ES ";
+     shadingLanguageVersionString << (clientVersion.getMajor() == 2 ? 1 : clientVersion.getMajor())
+-                                 << "." << clientVersion.getMinor() << "0 (ANGLE "
+-                                 << angle::GetANGLEVersionString() << ")";
++                                 << "." << clientVersion.getMinor() << "0 (ANGLE)";
+     mShadingLanguageString = MakeStaticString(shadingLanguageVersionString.str());
+ }
+ 
+diff --git a/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp b/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
+index b074753..c38155c 100644
+--- a/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
++++ b/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp
+@@ -2337,15 +2337,6 @@ std::string Renderer11::getRendererDescription() const
+     std::ostringstream rendererString;
+ 
+     rendererString << mDescription;
+-    rendererString << " (" << gl::FmtHex(mAdapterDescription.DeviceId) << ")";
+-    rendererString << " Direct3D11";
+-    if (mD3d12Module)
+-        rendererString << "on12";
+-
+-    rendererString << " vs_" << getMajorShaderModel() << "_" << getMinorShaderModel()
+-                   << getShaderModelSuffix();
+-    rendererString << " ps_" << getMajorShaderModel() << "_" << getMinorShaderModel()
+-                   << getShaderModelSuffix();
+ 
+     return rendererString.str();
+ }
+diff --git a/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp b/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
+index c81d071..ff36fc3 100644
+--- a/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
++++ b/src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp
+@@ -2423,19 +2423,6 @@ std::string Renderer9::getRendererDescription() const
+     std::ostringstream rendererString;
+ 
+     rendererString << mAdapterIdentifier.Description;
+-    if (getShareHandleSupport())
+-    {
+-        rendererString << " Direct3D9Ex";
+-    }
+-    else
+-    {
+-        rendererString << " Direct3D9";
+-    }
+-
+-    rendererString << " vs_" << D3DSHADER_VERSION_MAJOR(mDeviceCaps.VertexShaderVersion) << "_"
+-                   << D3DSHADER_VERSION_MINOR(mDeviceCaps.VertexShaderVersion);
+-    rendererString << " ps_" << D3DSHADER_VERSION_MAJOR(mDeviceCaps.PixelShaderVersion) << "_"
+-                   << D3DSHADER_VERSION_MINOR(mDeviceCaps.PixelShaderVersion);
+ 
+     return rendererString.str();
+ }
+diff --git a/src/libANGLE/renderer/gl/DisplayGL.cpp b/src/libANGLE/renderer/gl/DisplayGL.cpp
+index e8aa88e..e330228 100644
+--- a/src/libANGLE/renderer/gl/DisplayGL.cpp
++++ b/src/libANGLE/renderer/gl/DisplayGL.cpp
+@@ -177,13 +177,15 @@ egl::Error DisplayGL::makeCurrentSurfaceless(gl::Context *context)
+ 
+ std::string DisplayGL::getRendererDescription()
+ {
+-    std::string rendererString        = GetRendererString(getRenderer()->getFunctions());
+-    const angle::FeaturesGL &features = getRenderer()->getFeatures();
++    std::string rendererString = GetRendererString(getRenderer()->getFunctions());
+ 
+-    if (features.sanitizeAMDGPURendererString.enabled)
++    // Find the first semicolon and extract only the part before it.
++    size_t semicolonPos = rendererString.find(';');
++    if (semicolonPos != std::string::npos)
+     {
+-        return SanitizeRendererString(rendererString);
++        return rendererString.substr(0, semicolonPos);
+     }
++
+     return rendererString;
+ }
+ 
+diff --git a/src/libANGLE/renderer/metal/DisplayMtl.mm b/src/libANGLE/renderer/metal/DisplayMtl.mm
+index 02989ef..bd3e8cb 100644
+--- a/src/libANGLE/renderer/metal/DisplayMtl.mm
++++ b/src/libANGLE/renderer/metal/DisplayMtl.mm
+@@ -192,12 +192,13 @@ std::string DisplayMtl::getRendererDescription()
+ {
+     ANGLE_MTL_OBJC_SCOPE
+     {
+-        std::string desc = "ANGLE Metal Renderer";
++        std::string desc = "ANGLE ";
+ 
+         if (mMetalDevice)
+         {
+-            desc += ": ";
++            desc += "(";
+             desc += mMetalDevice.get().name.UTF8String;
++            desc += ")";
+         }
+ 
+         return desc;
+diff --git a/src/libANGLE/renderer/vulkan/vk_renderer.cpp b/src/libANGLE/renderer/vulkan/vk_renderer.cpp
+index 829c21b..4ce9de9 100644
+--- a/src/libANGLE/renderer/vulkan/vk_renderer.cpp
++++ b/src/libANGLE/renderer/vulkan/vk_renderer.cpp
+@@ -4920,28 +4920,7 @@ std::string Renderer::getRendererDescription() const
+ {
+     std::stringstream strstr;
+ 
+-    uint32_t apiVersion = mPhysicalDeviceProperties.apiVersion;
+-
+-    strstr << "Vulkan ";
+-    strstr << VK_API_VERSION_MAJOR(apiVersion) << ".";
+-    strstr << VK_API_VERSION_MINOR(apiVersion) << ".";
+-    strstr << VK_API_VERSION_PATCH(apiVersion);
+-
+-    strstr << " (";
+-
+-    // In the case of NVIDIA, deviceName does not necessarily contain "NVIDIA". Add "NVIDIA" so that
+-    // Vulkan end2end tests can be selectively disabled on NVIDIA. TODO(jmadill): should not be
+-    // needed after http://anglebug.com/40096421 is fixed and end2end_tests use more sophisticated
+-    // driver detection.
+-    if (mPhysicalDeviceProperties.vendorID == VENDOR_ID_NVIDIA)
+-    {
+-        strstr << GetVendorString(mPhysicalDeviceProperties.vendorID) << " ";
+-    }
+-
+     strstr << mPhysicalDeviceProperties.deviceName;
+-    strstr << " (" << gl::FmtHex(mPhysicalDeviceProperties.deviceID) << ")";
+-
+-    strstr << ")";
+ 
+     return strstr.str();
+ }
+-- 
+2.52.0
+
