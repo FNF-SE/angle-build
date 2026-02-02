@@ -138,12 +138,12 @@ index 02989ef..bd3e8cb 100644
      ANGLE_MTL_OBJC_SCOPE
      {
 -        std::string desc = "ANGLE Metal Renderer";
-+        std::string desc = "ANGLE ";
++        std::string desc = "ANGLE";
  
          if (mMetalDevice)
          {
 -            desc += ": ";
-+            desc += "(";
++            desc += " (";
              desc += mMetalDevice.get().name.UTF8String;
 +            desc += ")";
          }
