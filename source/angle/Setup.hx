@@ -10,6 +10,8 @@ import angle.util.FileUtil;
 
 class Setup
 {
+	static final ANGLE_COMMIT:String = 'ea74fad79ed7e920c77b1fee930388040c3619d2';
+
 	public static function run():Void
 	{
 		if (Sys.systemName() == 'Windows')
@@ -38,11 +40,14 @@ class Setup
 		addToPATH(FileSystem.absolutePath('depot_tools'));
 
 		// Clone angle.
-		gitClone('angle', 'https://chromium.googlesource.com/angle/angle');
+		gitClone('angle', 'https://chromium.googlesource.com/angle/angle', false);
 
 		// Configure and sync ANGLE dependencies
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
+			// Hard-pin ANGLE to a specific commit
+			Sys.command('git', ['checkout', ANGLE_COMMIT]);
+
 			// Configure and sync ANGLE dependencies
 			Sys.command('gclient', ['config', '--unmanaged', 'https://chromium.googlesource.com/angle/angle']);
 
@@ -96,10 +101,10 @@ class Setup
 	}
 
 	@:noCompletion
-	static function gitClone(name:String, url:String):Void
+	static function gitClone(name:String, url:String, shallow:Bool = true):Void
 	{
 		if (!FileSystem.exists(name))
-			Sys.command('git', ['clone', '--depth', '1', url]);
+			Sys.command('git', shallow ? ['clone', '--depth', '1', url] : ['clone', url]);
 	}
 
 	@:noCompletion
