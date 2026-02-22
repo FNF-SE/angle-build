@@ -260,6 +260,12 @@ class Build
 					renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
 					renderingBackends.push('angle_use_custom_libvulkan=false'); // Use system Vulkan loader only
 
+					if (buildPlatform == 'linux')
+					{
+						renderingBackends.push('angle_use_x11=true'); // Use X11 frontend
+						renderingBackends.push('angle_use_wayland=true'); // Use Wayland frontend
+					}
+
 					if (buildPlatform == 'windows')
 					{
 						final targetConfigX64:Config = getDefaultTargetPlatform();
