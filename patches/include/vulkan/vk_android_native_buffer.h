@@ -19,6 +19,7 @@
 
 #include <cutils/native_handle.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_android.h>
 
 #ifdef __cplusplus
 extern "C" {
