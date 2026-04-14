@@ -84,7 +84,8 @@ class Setup
 
 			if (platform == 'android')
 			{
-				Sys.command("sed -i '/asmflags = \\[\\]/a\\if (is_android) {\\n  cflags += [ \"-DVK_USE_PLATFORM_ANDROID_KHR\" ]\\n}' BUILD.gn");
+				Sys.command("sed -i '/asmflags = \\[\\]/a\\if (is_android) {\\n  cflags += [ \"-DVK_USE_PLATFORM_ANDROID_KHR\" ]\\n}' third_party/SwiftShader/BUILD.gn");
+				Sys.command("sed", ["-i", "/SUBZERO_TARGET/d", "third_party/SwiftShader/src/Reactor/BUILD.gn"]);
 				FileUtil.copyFile('../../patches/include/cutils/native_handle.h', 'third_party/SwiftShader/include/cutils/native_handle.h');
 				FileUtil.copyFile('../../patches/include/vulkan/vk_android_native_buffer.h', 'third_party/SwiftShader/include/vulkan/vk_android_native_buffer.h');
 				FileUtil.goAndBackFromDir('third_party/SwiftShader/third_party/llvm-subzero', function():Void
