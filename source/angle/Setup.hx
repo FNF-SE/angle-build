@@ -88,6 +88,12 @@ class Setup
 					FileUtil.copyDirectory('build/Android/include', 'include');
 				});
 
+			if (platform == 'windows')
+				FileUtil.goAndBackFromDir('third_party/SwiftShader/third_party/llvm-10.0', function():Void
+				{
+					Sys.command("sed -i 's/cflags += \\[/cflags += [ \"\\/std:c++17\",/' BUILD.gn");
+				});
+
 			FileUtil.applyGitPatchesFromDir('../../patches');
 		});
 
