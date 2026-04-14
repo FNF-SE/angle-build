@@ -81,6 +81,12 @@ class Setup
 			Sys.command('gclient', ['sync', '--no-history', '--jobs', '8']);
 			Sys.command('gclient', ['runhooks']);
 
+			if (platform == 'android')
+				FileUtil.goAndBackFromDir('third_party/SwiftShader/third_party/llvm-subzero', function():Void
+				{
+					FileUtil.copyDirectory('build/Android/include', 'include');
+				});
+
 			FileUtil.applyGitPatchesFromDir('../../patches');
 		});
 
