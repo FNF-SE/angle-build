@@ -52,6 +52,7 @@ class Setup
 			Sys.command('gclient', ['config', '--unmanaged', 'https://chromium.googlesource.com/angle/angle']);
 
 			{
+				final platform = Platform.getBuildPlatform();
 				// Create a .gclient file with proper setup
 				final gclientFile:Array<String> = [];
 				gclientFile.push('solutions = [');
@@ -62,11 +63,23 @@ class Setup
 				gclientFile.push('     "managed": False,');
 				gclientFile.push('  }');
 				gclientFile.push(']');
+				gclientFile.push('');
+				if (platform == 'windows')
+					gclientFile.push('target_os = ["win"]');
+				else if (platform == 'linux')
+					gclientFile.push('target_os = ["linux"]');
+				else if (platform == 'mac')
+					gclientFile.push('target_os = ["mac"]');
+				else if (platform == 'android')
+					gclientFile.push('target_os = ["android"]');
+				else if (platform == 'ios')
+					gclientFile.push('target_os = ["ios"]');
 				File.saveContent('.gclient', gclientFile.join('\n'));
 			}
 
 			// Syncing ANGLE dependencies with gclient...
 			Sys.command('gclient', ['sync', '--no-history', '--jobs', '8']);
+			Sys.command('gclient', ['runhooks']);
 
 			FileUtil.applyGitPatchesFromDir('../../patches');
 		});
