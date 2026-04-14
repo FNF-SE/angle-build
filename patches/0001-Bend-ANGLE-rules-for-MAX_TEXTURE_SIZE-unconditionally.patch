@@ -1,6 +1,6 @@
-From 172ecebcedb70e034bb6478112e1839d93d9ec06 Mon Sep 17 00:00:00 2001
+From a08c05f4ee80a798ec7099aac9465893d136b3ca Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
-Date: Thu, 29 Jan 2026 23:27:44 +0300
+Date: Tue, 14 Apr 2026 13:24:40 +0300
 Subject: [PATCH 1/4] bend ANGLE rules for `MAX_TEXTURE_SIZE` unconditionally.
 
 Currently, reaching `MAX_TEXTURE_SIZE` has the effect of a black box. The creation fails and the behavior diverges vastly across backends, Without having the ability to realistically probe what the GPU can do, applications end up losing that capability.
@@ -18,10 +18,10 @@ Instead of making guesses, we give the GPU permission to try to create the textu
  8 files changed, 37 insertions(+), 70 deletions(-)
 
 diff --git a/src/libANGLE/Context.cpp b/src/libANGLE/Context.cpp
-index a120b4d..6d2144d 100644
+index 92aa5ef0c5..b9bd3946f9 100644
 --- a/src/libANGLE/Context.cpp
 +++ b/src/libANGLE/Context.cpp
-@@ -4253,9 +4253,9 @@ void Context::initCaps()
+@@ -4236,9 +4236,9 @@ void Context::initCaps()
  
      // Apply/Verify implementation limits
      ANGLE_LIMIT_CAP(caps->maxDrawBuffers, IMPLEMENTATION_MAX_DRAW_BUFFERS);
@@ -34,7 +34,7 @@ index a120b4d..6d2144d 100644
      ANGLE_LIMIT_CAP(caps->maxColorAttachments, IMPLEMENTATION_MAX_DRAW_BUFFERS);
      ANGLE_LIMIT_CAP(caps->maxVertexAttributes, MAX_VERTEX_ATTRIBS);
      if (mDisplay->getFrontendFeatures().forceMinimumMaxVertexAttributes.enabled &&
-@@ -4284,18 +4284,18 @@ void Context::initCaps()
+@@ -4267,18 +4267,18 @@ void Context::initCaps()
  
      if (mWebGLContext && limitations.webGLTextureSizeLimit > 0)
      {
@@ -59,7 +59,7 @@ index a120b4d..6d2144d 100644
      ANGLE_LIMIT_CAP(caps->maxShaderUniformBlocks[ShaderType::Vertex],
                      IMPLEMENTATION_MAX_VERTEX_SHADER_UNIFORM_BUFFERS);
 diff --git a/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp b/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
-index 6cc6949..e4ba9cc 100644
+index 4de7ba5c3d..b3424c9414 100644
 --- a/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
 +++ b/src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp
 @@ -414,32 +414,6 @@ int GetMaximumSimultaneousRenderTargets(D3D_FEATURE_LEVEL featureLevel)
@@ -105,7 +105,7 @@ index 6cc6949..e4ba9cc 100644
      caps->maxArrayTextureLayers = GetMaximum2DTextureArraySize(featureLevel);
  
 diff --git a/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp b/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
-index 52e9cda..86c1ba8 100644
+index 52e9cdad65..86c1ba8bb7 100644
 --- a/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
 +++ b/src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp
 @@ -534,7 +534,7 @@ void GenerateCaps(IDirect3D9 *d3d9,
@@ -118,10 +118,10 @@ index 52e9cda..86c1ba8 100644
      // D3D treats cube maps as a special case of 2D textures
      caps->maxCubeMapTextureSize = caps->max2DTextureSize;
 diff --git a/src/libANGLE/renderer/gl/renderergl_utils.cpp b/src/libANGLE/renderer/gl/renderergl_utils.cpp
-index a2c6e47..2e0608f 100644
+index 49ca04f27a..e0f124fe10 100644
 --- a/src/libANGLE/renderer/gl/renderergl_utils.cpp
 +++ b/src/libANGLE/renderer/gl/renderergl_utils.cpp
-@@ -816,7 +816,7 @@ void GenerateCaps(const FunctionsGL *functions,
+@@ -810,7 +810,7 @@ void GenerateCaps(const FunctionsGL *functions,
          LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
      }
  
@@ -130,9 +130,9 @@ index a2c6e47..2e0608f 100644
      caps->maxCubeMapTextureSize =
          QuerySingleGLInt(functions, GL_MAX_CUBE_MAP_TEXTURE_SIZE);  // GL 1.3 / ES 2.0
  
-@@ -848,12 +848,12 @@ void GenerateCaps(const FunctionsGL *functions,
-         functions->hasGLExtension("GL_EXT_framebuffer_object") ||
-         functions->isAtLeastGLES(gl::Version(3, 0)))
+@@ -836,12 +836,12 @@ void GenerateCaps(const FunctionsGL *functions,
+ 
+     if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
      {
 -        caps->maxRenderbufferSize = QuerySingleGLInt(functions, GL_MAX_RENDERBUFFER_SIZE);
 +        caps->maxRenderbufferSize = 16384;
@@ -145,7 +145,7 @@ index a2c6e47..2e0608f 100644
          caps->maxColorAttachments = 1;
      }
      else
-@@ -1236,10 +1236,10 @@ void GenerateCaps(const FunctionsGL *functions,
+@@ -1208,10 +1208,10 @@ void GenerateCaps(const FunctionsGL *functions,
      if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
          functions->hasGLExtension("GL_ARB_framebuffer_no_attachments"))
      {
@@ -159,7 +159,7 @@ index a2c6e47..2e0608f 100644
      }
      else
      {
-@@ -1882,7 +1882,7 @@ void GenerateCaps(const FunctionsGL *functions,
+@@ -1837,7 +1837,7 @@ void GenerateCaps(const FunctionsGL *functions,
      {
          extensions->textureRectangleANGLE = true;
          caps->maxRectangleTextureSize =
@@ -169,10 +169,10 @@ index a2c6e47..2e0608f 100644
  
      // OpenGL 4.3 (and above) and OpenGL ES 3.2 can support all features and constants defined in
 diff --git a/src/libANGLE/renderer/metal/DisplayMtl.mm b/src/libANGLE/renderer/metal/DisplayMtl.mm
-index 41bc271..02989ef 100644
+index 027c127b0b..dfca7fbbee 100644
 --- a/src/libANGLE/renderer/metal/DisplayMtl.mm
 +++ b/src/libANGLE/renderer/metal/DisplayMtl.mm
-@@ -726,7 +726,7 @@ void DisplayMtl::ensureCapsInitialized() const
+@@ -731,7 +731,7 @@ void DisplayMtl::ensureCapsInitialized() const
      mNativeCaps.maxVaryingVectors         = 31 - 1;
      mNativeCaps.maxVertexOutputComponents = mNativeCaps.maxFragmentInputComponents = 124 - 4;
  #elif TARGET_OS_SIMULATOR
@@ -181,7 +181,7 @@ index 41bc271..02989ef 100644
      mNativeCaps.maxVaryingVectors         = 31 - 1;
      mNativeCaps.maxVertexOutputComponents = mNativeCaps.maxFragmentInputComponents = 124 - 4;
  #else
-@@ -738,7 +738,7 @@ void DisplayMtl::ensureCapsInitialized() const
+@@ -743,7 +743,7 @@ void DisplayMtl::ensureCapsInitialized() const
      }
      else
      {
@@ -191,10 +191,10 @@ index 41bc271..02989ef 100644
          mNativeCaps.maxVaryingVectors = mNativeCaps.maxVertexOutputComponents / 4;
      }
 diff --git a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp b/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
-index b395697..37f1953 100644
+index 7ddca2534a..4e9352d7f7 100644
 --- a/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
 +++ b/src/libANGLE/renderer/vulkan/CLDeviceVk.cpp
-@@ -177,8 +177,8 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
+@@ -191,8 +191,8 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
  
      info.imageSupport = CL_TRUE;
  
@@ -206,10 +206,10 @@ index b395697..37f1953 100644
      info.image3D_MaxHeight = properties.limits.maxImageDimension3D;
      info.image3D_MaxDepth  = properties.limits.maxImageDimension3D;
 diff --git a/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp b/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
-index 4102464..c8748a7 100644
+index 3aaa0d2244..eda4432a61 100644
 --- a/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
 +++ b/src/libANGLE/renderer/vulkan/vk_caps_utils.cpp
-@@ -658,14 +658,12 @@ void Renderer::ensureCapsInitialized() const
+@@ -650,14 +650,12 @@ void Renderer::ensureCapsInitialized() const
      mNativeCaps.maxElementIndex = (1 << 30) - 1;
  
      mNativeCaps.max3DTextureSize = rx::LimitToInt(limitsVk.maxImageDimension3D);
@@ -226,7 +226,7 @@ index 4102464..c8748a7 100644
      mNativeCaps.minAliasedPointSize = std::max(1.0f, limitsVk.pointSizeRange[0]);
      mNativeCaps.maxAliasedPointSize = limitsVk.pointSizeRange[1];
  
-@@ -686,11 +684,11 @@ void Renderer::ensureCapsInitialized() const
+@@ -678,11 +676,11 @@ void Renderer::ensureCapsInitialized() const
  
      mNativeCaps.maxDrawBuffers =
          std::min(limitsVk.maxColorAttachments, limitsVk.maxFragmentOutputAttachments);
@@ -242,7 +242,7 @@ index 4102464..c8748a7 100644
      mNativeCaps.maxSampleMaskWords   = rx::LimitToInt(limitsVk.maxSampleMaskWords);
      mNativeCaps.maxColorTextureSamples =
          vk_gl::GetMaxSampleCount(limitsVk.sampledImageColorSampleCounts);
-@@ -1567,12 +1565,7 @@ EGLint ComputeMaximumPBufferPixels(const VkPhysicalDeviceProperties &physicalDev
+@@ -1561,12 +1559,7 @@ EGLint ComputeMaximumPBufferPixels(const VkPhysicalDeviceProperties &physicalDev
      // http://anglebug.com/42261335
  
      // Storing the result of squaring a 32-bit unsigned int in a 64-bit unsigned int is safe.
@@ -256,7 +256,7 @@ index 4102464..c8748a7 100644
  
      return static_cast<EGLint>(std::min(maxDimensionsSquared, kMaxValueForEGLint));
  }
-@@ -1630,8 +1623,8 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
+@@ -1624,8 +1617,8 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
      config.stencilSize        = depthStencilFormat.stencilBits;
      config.level              = 0;
      config.matchNativePixmap  = EGL_NONE;
@@ -268,10 +268,10 @@ index 4102464..c8748a7 100644
      config.maxSwapInterval    = 1;
      config.minSwapInterval    = 0;
 diff --git a/src/libANGLE/renderer/wgpu/wgpu_utils.cpp b/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
-index 355ea94..f220d19 100644
+index 30e5f270c6..855af53dc2 100644
 --- a/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
 +++ b/src/libANGLE/renderer/wgpu/wgpu_utils.cpp
-@@ -265,11 +265,11 @@ void GenerateCaps(const WGPULimits &limitsWgpu,
+@@ -272,11 +272,11 @@ void GenerateCaps(const WGPULimits &limitsWgpu,
      // OpenGL ES caps
      glCaps->maxElementIndex       = std::numeric_limits<GLuint>::max() - 1;
      glCaps->max3DTextureSize      = rx::LimitToInt(limitsWgpu.maxTextureDimension3D);
@@ -286,7 +286,7 @@ index 355ea94..f220d19 100644
      glCaps->minAliasedPointSize   = 1.0f;
      glCaps->maxAliasedPointSize   = 1.0f;
      glCaps->minAliasedLineWidth   = 1.0f;
-@@ -279,12 +279,12 @@ void GenerateCaps(const WGPULimits &limitsWgpu,
+@@ -286,12 +286,12 @@ void GenerateCaps(const WGPULimits &limitsWgpu,
      constexpr uint32_t kMaxSampleCount = 4;
  
      glCaps->maxDrawBuffers         = rx::LimitToInt(limitsWgpu.maxColorAttachments);
@@ -304,5 +304,5 @@ index 355ea94..f220d19 100644
      glCaps->maxColorTextureSamples = kMaxSampleCount;
      glCaps->maxDepthTextureSamples = kMaxSampleCount;
 -- 
-2.52.0
+2.53.0.windows.1
 
