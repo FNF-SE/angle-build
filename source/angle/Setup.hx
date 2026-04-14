@@ -45,6 +45,8 @@ class Setup
 		// Configure and sync ANGLE dependencies
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
+			final platform:String = Platform.getBuildPlatform();
+
 			// Hard-pin ANGLE to a specific commit
 			Sys.command('git', ['checkout', ANGLE_COMMIT]);
 
@@ -52,7 +54,6 @@ class Setup
 			Sys.command('gclient', ['config', '--unmanaged', 'https://chromium.googlesource.com/angle/angle']);
 
 			{
-				final platform = Platform.getBuildPlatform();
 				// Create a .gclient file with proper setup
 				final gclientFile:Array<String> = [];
 				gclientFile.push('solutions = [');
