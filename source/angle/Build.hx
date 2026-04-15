@@ -103,6 +103,8 @@ class Build
 				libsToCopy = ['d3dcompiler_47', 'libEGL', 'libGLESv2', 'vk_swiftshader'];
 			else if (buildPlatform == 'linux')
 				libsToCopy = ['libEGL', 'libGLESv2', 'libvk_swiftshader'];
+			else if (buildPlatform == 'macos')
+				libsToCopy = ['libEGL', 'libGLESv2', 'libVkICD_mock_icd'];
 
 			for (lib in libsToCopy)
 			{
