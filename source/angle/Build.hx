@@ -150,7 +150,7 @@ class Build
 
 			if (buildPlatform == 'windows')
 				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/bin/${buildConfig.cpu}/vk_swiftshader_icd.json');
-			else
+			else if (buildPlatform == 'linux')
 				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/lib/${buildConfig.cpu}/vk_swiftshader_icd.json');
 		}
 
@@ -249,7 +249,14 @@ class Build
 					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
 					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
 					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
-					renderingBackends.push('angle_enable_swiftshader=true'); // Enable SwiftShader
+					if (buildPlatform != 'android')
+					{
+						renderingBackends.push('angle_enable_swiftshader=true'); // Enable SwiftShader
+					}
+					else
+					{
+						renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
+					}
 
 					if (buildPlatform == 'windows')
 					{
