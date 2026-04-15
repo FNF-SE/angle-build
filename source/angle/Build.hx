@@ -97,10 +97,12 @@ class Build
 		// Copy angle's libs.
 		for (buildConfig in buildConfigs)
 		{
-			final libsToCopy:Array<String> = ANGLE_LIBS;
+			var libsToCopy:Array<String> = ANGLE_LIBS;
 
 			if (buildPlatform == 'windows')
-				libsToCopy.push('d3dcompiler_47');
+				libsToCopy = ['d3dcompiler_47', 'libEGL', 'libGLESv2', 'vk_swiftshader', 'vulkan-1'];
+			else if (buildPlatform == 'linux')
+				libsToCopy = ['libEGL', 'libGLESv2', 'libvk_swiftshader'];
 
 			for (lib in libsToCopy)
 			{
@@ -145,6 +147,12 @@ class Build
 						iosFrameworksToCombine.get(lib)?.get(buildConfig.environment)?.push(libDestination);
 				}
 			}
+
+			if (buildPlatform == 'windows' || buildPlatform == 'linux')
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/bin/${buildConfig.cpu}/vk_swiftshader_icd.json');
+
+			if (buildPlatform == 'linux')
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/libvulkan.so.1', 'build/$buildPlatform/bin/${buildConfig.cpu}/libvulkan.so.1');
 		}
 
 		if (buildPlatform == 'macos')
