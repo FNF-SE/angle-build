@@ -71,17 +71,42 @@ class Setup
 					gclientFile.push('target_os = ["linux"]');
 				else if (platform == 'mac')
 					gclientFile.push('target_os = ["mac"]');
-				else if (platform == 'android')
-					gclientFile.push('target_os = ["android"]');
+				//else if (platform == 'android')
+				//	gclientFile.push('target_os = ["android"]');
 				else if (platform == 'ios')
 					gclientFile.push('target_os = ["ios"]');
 				File.saveContent('.gclient', gclientFile.join('\n'));
 			}
 
 			// Syncing ANGLE dependencies with gclient...
-			Sys.command('gclient', ['sync', '--no-history', '--jobs', '8']);
+			Sys.command('gclient', ['sync', '--no-history', '--shallow', '--jobs', '8']);
 			Sys.command('gclient', ['runhooks']);
 
+			if (platform == 'android')
+				FileUtil.goAndBackFromDir('third_party', function():Void
+				{
+					if (!FileSystem.exists('android_sdk/BUILD.gn'))
+					{
+						FileUtil.deletePath('android_sdk');
+						Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/android_sdk']);
+					}
+	
+					if (!FileSystem.exists('ijar/BUILD.gn'))
+					{
+						FileUtil.deletePath('ijar');
+						Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/ijar']);
+					}
+	
+					FileUtil.goAndBackFromDir('cpu_features', function():Void
+					{
+						if (!FileSystem.exists('src/ndk_compat'))
+						{
+							FileUtil.deletePath('src');
+							Sys.command('git', ['clone', 'https://github.com/google/cpu_features', 'src', '-b', 'v0.8.0']);
+						}
+					});
+
+			// weird MSVC quirk
 			if (platform == 'windows')
 				FileUtil.goAndBackFromDir('third_party/SwiftShader/third_party/llvm-10.0', function():Void
 				{
