@@ -148,11 +148,13 @@ class Build
 				}
 			}
 
-			if (buildPlatform == 'windows' || buildPlatform == 'linux')
+			if (buildPlatform == 'windows')
 				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/bin/${buildConfig.cpu}/vk_swiftshader_icd.json');
-
-			if (buildPlatform == 'linux')
-				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/libvulkan.so.1', 'build/$buildPlatform/bin/${buildConfig.cpu}/libvulkan.so.1');
+			else if (buildPlatform == 'linux')
+			{
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/lib/${buildConfig.cpu}/vk_swiftshader_icd.json');
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/libvulkan.so.1', 'build/$buildPlatform/lib/${buildConfig.cpu}/libvulkan.so.1');
+			}
 		}
 
 		if (buildPlatform == 'macos')
