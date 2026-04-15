@@ -350,6 +350,7 @@ class Build
 						renderingBackends.push('angle_enable_vulkan=true'); // Enable Vulkan backend
 						renderingBackends.push('angle_enable_vulkan_api_dump_layer=false'); // Disable Vulkan API dump layer
 						renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
+						renderingBackends.push('angle_use_custom_libvulkan=true'); // Use ANGLE's Vulkan loader
 					}
 					else 
 					{
