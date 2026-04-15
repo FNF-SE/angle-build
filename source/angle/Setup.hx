@@ -105,6 +105,7 @@ class Setup
 							Sys.command('git', ['clone', 'https://github.com/google/cpu_features', 'src', '-b', 'v0.8.0']);
 						}
 					});
+				});
 
 			// weird MSVC quirk
 			if (platform == 'windows')
