@@ -45,6 +45,8 @@ class Setup
 		// Configure and sync ANGLE dependencies
 		FileUtil.goAndBackFromDir('angle', function():Void
 		{
+			final platform:String = Platform.getBuildPlatform();
+
 			// Hard-pin ANGLE to a specific commit
 			Sys.command('git', ['checkout', ANGLE_COMMIT]);
 
@@ -62,37 +64,31 @@ class Setup
 				gclientFile.push('     "managed": False,');
 				gclientFile.push('  }');
 				gclientFile.push(']');
+				gclientFile.push('');
+				if (platform == 'windows')
+					gclientFile.push('target_os = ["win"]');
+				else if (platform == 'linux')
+					gclientFile.push('target_os = ["linux"]');
+				else if (platform == 'mac')
+					gclientFile.push('target_os = ["mac"]');
+				else if (platform == 'android')
+					gclientFile.push('target_os = ["android"]');
+				else if (platform == 'ios')
+					gclientFile.push('target_os = ["ios"]');
 				File.saveContent('.gclient', gclientFile.join('\n'));
 			}
 
 			// Syncing ANGLE dependencies with gclient...
 			Sys.command('gclient', ['sync', '--no-history', '--shallow', '--jobs', '8']);
+			Sys.command('gclient', ['runhooks']);
 
-			// For some reason gclient does not add some stuff so we have to clone it ourselves.
-			FileUtil.goAndBackFromDir('third_party', function():Void
-			{
-				if (!FileSystem.exists('android_sdk/BUILD.gn'))
+			// weird MSVC quirk
+			if (platform == 'windows')
+				FileUtil.goAndBackFromDir('third_party/SwiftShader/third_party/llvm-10.0', function():Void
 				{
-					FileUtil.deletePath('android_sdk');
-					Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/android_sdk']);
-				}
-
-				if (!FileSystem.exists('ijar/BUILD.gn'))
-				{
-					FileUtil.deletePath('ijar');
-					Sys.command('git', ['clone', 'https://chromium.googlesource.com/chromium/src/third_party/ijar']);
-				}
-
-				FileUtil.goAndBackFromDir('cpu_features', function():Void
-				{
-					if (!FileSystem.exists('src/ndk_compat'))
-					{
-						FileUtil.deletePath('src');
-						Sys.command('git', ['clone', 'https://github.com/google/cpu_features', 'src', '-b', 'v0.8.0']);
-					}
+					Sys.command("sed -i '/SuccIterator(InstructionT \\*Inst)/i\\  SuccIterator() : Inst(nullptr), Idx(0) {}' llvm/include/llvm/IR/CFG.h");
 				});
-			});
-			
+
 			FileUtil.applyGitPatchesFromDir('../../patches');
 		});
 

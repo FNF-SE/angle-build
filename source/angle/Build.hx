@@ -97,10 +97,14 @@ class Build
 		// Copy angle's libs.
 		for (buildConfig in buildConfigs)
 		{
-			final libsToCopy:Array<String> = ANGLE_LIBS;
+			var libsToCopy:Array<String> = ANGLE_LIBS;
 
 			if (buildPlatform == 'windows')
-				libsToCopy.push('d3dcompiler_47');
+				libsToCopy = ['d3dcompiler_47', 'libEGL', 'libGLESv2', 'vk_swiftshader'];
+			else if (buildPlatform == 'linux')
+				libsToCopy = ['libEGL', 'libGLESv2', 'libvk_swiftshader'];
+			else if (buildPlatform == 'macos')
+				libsToCopy = ['libEGL', 'libGLESv2', 'libVkICD_mock_icd'];
 
 			for (lib in libsToCopy)
 			{
@@ -145,6 +149,11 @@ class Build
 						iosFrameworksToCombine.get(lib)?.get(buildConfig.environment)?.push(libDestination);
 				}
 			}
+
+			if (buildPlatform == 'windows')
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/bin/${buildConfig.cpu}/vk_swiftshader_icd.json');
+			else if (buildPlatform == 'linux')
+				FileUtil.copyFile('angle/${buildConfig.getExportPath()}/vk_swiftshader_icd.json', 'build/$buildPlatform/lib/${buildConfig.cpu}/vk_swiftshader_icd.json');
 		}
 
 		if (buildPlatform == 'macos')
@@ -242,7 +251,18 @@ class Build
 					renderingBackends.push('angle_enable_metal=false'); // Disable Metal backend
 					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
 					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
-					renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
+					if (buildPlatform != 'android')
+					{
+						renderingBackends.push('angle_enable_swiftshader=true'); // Enable SwiftShader
+						if (buildPlatform == 'windows')
+						{
+							renderingBackends.push('use_swiftshader_with_subzero=false'); // Disable Subzero for SwiftShader
+						}
+					}
+					else
+					{
+						renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
+					}
 
 					if (buildPlatform == 'windows')
 					{
@@ -258,13 +278,7 @@ class Build
 					renderingBackends.push('angle_enable_vulkan=true'); // Enable Vulkan backend
 					renderingBackends.push('angle_enable_vulkan_api_dump_layer=false'); // Disable Vulkan API dump layer
 					renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
-					renderingBackends.push('angle_use_custom_libvulkan=false'); // Use system Vulkan loader only
-
-					if (buildPlatform == 'linux')
-					{
-						renderingBackends.push('angle_use_x11=true'); // Use X11 frontend
-						renderingBackends.push('angle_use_wayland=true'); // Use Wayland frontend
-					}
+					renderingBackends.push('angle_use_custom_libvulkan=false'); // Use system Vulkan loader
 
 					if (buildPlatform == 'windows')
 					{
@@ -346,15 +360,19 @@ class Build
 					if (buildPlatform != 'ios')
 					{
 						renderingBackends.push('angle_enable_gl=true'); // Enable OpenGL backend
+						renderingBackends.push('angle_enable_vulkan=true'); // Enable Vulkan backend
+						renderingBackends.push('angle_enable_vulkan_api_dump_layer=false'); // Disable Vulkan API dump layer
+						renderingBackends.push('angle_enable_vulkan_validation_layers=false'); // Disable Vulkan validation layers
+						renderingBackends.push('angle_use_custom_libvulkan=true'); // Use ANGLE's Vulkan loader
 					}
 					else 
 					{
 						renderingBackends.push('angle_enable_gl=false'); // Disable OpenGL backend
+						renderingBackends.push('angle_enable_vulkan=false'); // Disable Vulkan backend
 					}
 					renderingBackends.push('angle_enable_metal=true'); // Enable Metal backend
 					renderingBackends.push('angle_enable_null=false'); // Disable Null backend
 					renderingBackends.push('angle_enable_wgpu=false'); // Disable WebGPU backend
-					renderingBackends.push('angle_enable_vulkan=false'); // Disable Vulkan backend
 					renderingBackends.push('angle_enable_swiftshader=false'); // Disable SwiftShader
 
 					if (buildPlatform == 'macos')
@@ -434,7 +452,7 @@ class Build
 		if (buildPlatform == 'ios')
 			targetConfig.args.push('ios_enable_code_signing=false');
 		else if (buildPlatform == 'android')
-			targetConfig.args.push('android_ndk_api_level=26');
+			targetConfig.args.push('android_ndk_api_level=24');
 	}
 
 	@:noCompletion
