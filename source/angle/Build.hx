@@ -254,7 +254,7 @@ class Build
 					if (buildPlatform != 'android')
 					{
 						renderingBackends.push('angle_enable_swiftshader=true'); // Enable SwiftShader
-						if (buildPlatform == 'linux')
+						if (buildPlatform == 'windows')
 						{
 							renderingBackends.push('use_swiftshader_with_subzero=false'); // Disable Subzero for SwiftShader
 						}
