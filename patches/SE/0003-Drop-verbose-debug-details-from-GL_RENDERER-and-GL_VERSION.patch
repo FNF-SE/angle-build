@@ -1,7 +1,7 @@
 From 76d151b7f1cfaaef3a1fa74913ff1bf501e3bb72 Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
 Date: Tue, 3 Feb 2026 16:42:03 +0300
-Subject: [PATCH 3/4] Drop verbose debug details from `GL_RENDERER` and
+Subject: [PATCH 3/5] Drop verbose debug details from `GL_RENDERER` and
  `GL_VERSION`.
 
 ---

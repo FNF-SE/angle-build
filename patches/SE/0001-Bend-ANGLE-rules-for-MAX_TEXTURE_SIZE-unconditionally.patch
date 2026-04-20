@@ -1,7 +1,7 @@
 From a08c05f4ee80a798ec7099aac9465893d136b3ca Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
 Date: Tue, 14 Apr 2026 13:24:40 +0300
-Subject: [PATCH 1/4] bend ANGLE rules for `MAX_TEXTURE_SIZE` unconditionally.
+Subject: [PATCH 1/5] bend ANGLE rules for `MAX_TEXTURE_SIZE` unconditionally.
 
 Currently, reaching `MAX_TEXTURE_SIZE` has the effect of a black box. The creation fails and the behavior diverges vastly across backends, Without having the ability to realistically probe what the GPU can do, applications end up losing that capability.
 

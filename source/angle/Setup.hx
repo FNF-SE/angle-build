@@ -90,6 +90,7 @@ class Setup
 				});
 
 			FileUtil.applyGitPatchesFromDir('../../patches');
+			FileUtil.applyGitPatchesFromDir('../../patches/SE');
 		});
 
 		// Print

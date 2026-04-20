@@ -1,0 +1,154 @@
+From fcb04b9d2145e33029c480717308fb456a414675 Mon Sep 17 00:00:00 2001
+From: Homura <egzozu.be.bas@gmail.com>
+Date: Mon, 20 Apr 2026 18:01:05 +0300
+Subject: [PATCH 5/5] respect `XDG_SESSION_TYPE` instead of hardcoding for display
+ attribs.
+
+---
+ src/libANGLE/Display.cpp                      | 27 ++++++++---
+ src/libANGLE/renderer/vulkan/CLPlatformVk.cpp | 45 +++++++++++++------
+ util/linux/LinuxWindow.cpp                    | 17 ++++---
+ 3 files changed, 63 insertions(+), 26 deletions(-)
+
+diff --git a/src/libANGLE/Display.cpp b/src/libANGLE/Display.cpp
+index 3b8bd137ab..2a4af97d46 100644
+--- a/src/libANGLE/Display.cpp
++++ b/src/libANGLE/Display.cpp
+@@ -377,19 +377,32 @@ EGLAttrib GetDeviceTypeFromEnvironment()
+ 
+ EGLAttrib GetPlatformTypeFromEnvironment()
+ {
+-#if defined(ANGLE_USE_OZONE)
+-    return 0;
+-#elif defined(ANGLE_USE_X11)
+-    return EGL_PLATFORM_X11_EXT;
+-#elif defined(ANGLE_USE_WAYLAND)
+-    return EGL_PLATFORM_WAYLAND_EXT;
++#if defined(ANGLE_PLATFORM_LINUX)
++    const char *session = getenv("XDG_SESSION_TYPE");
++
++    if (session)
++    {
++#if defined(ANGLE_USE_WAYLAND)
++        if (strcmp(session, "wayland") == 0)
++        {
++            return EGL_PLATFORM_WAYLAND_EXT;
++        }
++#endif
++
++#if defined(ANGLE_USE_X11)
++        if (strcmp(session, "x11") == 0)
++        {
++            return EGL_PLATFORM_X11_EXT;
++        }
++#endif
++    }
+ #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_SIMPLE)
+     return EGL_PLATFORM_VULKAN_DISPLAY_MODE_SIMPLE_ANGLE;
+ #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_HEADLESS)
+     return EGL_PLATFORM_VULKAN_DISPLAY_MODE_HEADLESS_ANGLE;
+ #else
+     return 0;
+-#endif  // defined(ANGLE_USE_OZONE)
++#endif  // defined(ANGLE_PLATFORM_LINUX)
+ }
+ 
+ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+diff --git a/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp b/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
+index bfe30e866a..d38352721b 100644
+--- a/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
++++ b/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
+@@ -259,24 +259,41 @@ angle::NativeWindowSystem CLPlatformVk::getWindowSystem()
+ const char *CLPlatformVk::getWSIExtension()
+ {
+ #if defined(ANGLE_ENABLE_VULKAN)
+-#    if defined(ANGLE_PLATFORM_LINUX)
+-#        if defined(ANGLE_USE_GBM)
+-    return nullptr;
+-#        elif defined(ANGLE_USE_X11)
+-    return VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+-#        elif defined(ANGLE_USE_WAYLAND)
+-    return VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+-#        else
+-    handleError(VK_ERROR_INCOMPATIBLE_DRIVER, __FILE__, __func__, __LINE__);
++
++#if defined(ANGLE_PLATFORM_LINUX)
++
++    const char *session = getenv("XDG_SESSION_TYPE");
++
++#if defined(ANGLE_USE_WAYLAND)
++    if (session && strcmp(session, "wayland") == 0)
++    {
++        return VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
++    }
++#endif
++
++#if defined(ANGLE_USE_X11)
++    if (session && strcmp(session, "x11") == 0)
++    {
++        return VK_KHR_XCB_SURFACE_EXTENSION_NAME;
++    }
++#endif
++
++#if defined(ANGLE_USE_GBM)
+     return nullptr;
+-#        endif
+-#    elif defined(ANGLE_PLATFORM_ANDROID)
++#endif
++
++#elif defined(ANGLE_PLATFORM_ANDROID)
++
+     return VK_KHR_ANDROID_SURFACE_EXTENSION_NAME;
+-#    else
++
++#else
++
+     handleError(VK_ERROR_INCOMPATIBLE_DRIVER, __FILE__, __func__, __LINE__);
+     return nullptr;
+-#    endif
+-#elif
++
++#endif
++
++#else
+     UNREACHABLE();
+ #endif
+ }
+diff --git a/util/linux/LinuxWindow.cpp b/util/linux/LinuxWindow.cpp
+index 34aa645bf3..c7799457ea 100644
+--- a/util/linux/LinuxWindow.cpp
++++ b/util/linux/LinuxWindow.cpp
+@@ -20,18 +20,25 @@
+ #if defined(ANGLE_USE_X11) || defined(ANGLE_USE_WAYLAND)
+ OSWindow *OSWindow::New()
+ {
++    const char *session = getenv("XDG_SESSION_TYPE");
++
+ #    if defined(ANGLE_USE_X11)
+-    // Prefer X11
+-    if (IsX11WindowAvailable())
++    if (session && strcmp(session, "x11") == 0)
+     {
+-        return CreateX11Window();
++        if (IsX11WindowAvailable())
++        {
++            return CreateX11Window();
++        }
+     }
+ #    endif
+ 
+ #    if defined(ANGLE_USE_WAYLAND)
+-    if (IsWaylandWindowAvailable())
++    if (session && strcmp(session, "wayland") == 0)
+     {
+-        return new WaylandWindow();
++        if (IsWaylandWindowAvailable())
++        {
++            return new WaylandWindow();
++        }
+     }
+ #    endif
+ 
+-- 
+2.53.0.windows.1
+
