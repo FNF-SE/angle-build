@@ -1,29 +1,38 @@
-From fcb04b9d2145e33029c480717308fb456a414675 Mon Sep 17 00:00:00 2001
+From 41b6ce23fddaf7fa158d5a8c5c573dd4aca5b491 Mon Sep 17 00:00:00 2001
 From: Homura <egzozu.be.bas@gmail.com>
-Date: Mon, 20 Apr 2026 18:01:05 +0300
+Date: Mon, 20 Apr 2026 20:36:20 +0300
 Subject: [PATCH 5/5] respect `XDG_SESSION_TYPE` instead of hardcoding for display
  attribs.
 
 ---
- src/libANGLE/Display.cpp                      | 27 ++++++++---
+ src/libANGLE/Display.cpp                      | 35 ++++++++++++---
  src/libANGLE/renderer/vulkan/CLPlatformVk.cpp | 45 +++++++++++++------
  util/linux/LinuxWindow.cpp                    | 17 ++++---
- 3 files changed, 63 insertions(+), 26 deletions(-)
+ 3 files changed, 72 insertions(+), 25 deletions(-)
 
 diff --git a/src/libANGLE/Display.cpp b/src/libANGLE/Display.cpp
-index 3b8bd137ab..2a4af97d46 100644
+index 3b8bd137ab..1180182f2e 100644
 --- a/src/libANGLE/Display.cpp
 +++ b/src/libANGLE/Display.cpp
-@@ -377,19 +377,32 @@ EGLAttrib GetDeviceTypeFromEnvironment()
+@@ -314,6 +314,13 @@ EGLAttrib GetDisplayTypeFromEnvironment()
+     }
+ #endif
+ 
++#if defined(ANGLE_ENABLE_D3D9)
++    if (angleDefaultEnv == "d3d9")
++    {
++        return EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE;
++    }
++#endif
++
+ #if defined(ANGLE_ENABLE_D3D11)
+     if (angleDefaultEnv == "d3d11")
+     {
+@@ -377,19 +384,35 @@ EGLAttrib GetDeviceTypeFromEnvironment()
  
  EGLAttrib GetPlatformTypeFromEnvironment()
  {
 -#if defined(ANGLE_USE_OZONE)
--    return 0;
--#elif defined(ANGLE_USE_X11)
--    return EGL_PLATFORM_X11_EXT;
--#elif defined(ANGLE_USE_WAYLAND)
--    return EGL_PLATFORM_WAYLAND_EXT;
 +#if defined(ANGLE_PLATFORM_LINUX)
 +    const char *session = getenv("XDG_SESSION_TYPE");
 +
@@ -43,6 +52,13 @@ index 3b8bd137ab..2a4af97d46 100644
 +        }
 +#endif
 +    }
++
++    // fallback if none found
+     return 0;
+-#elif defined(ANGLE_USE_X11)
+-    return EGL_PLATFORM_X11_EXT;
+-#elif defined(ANGLE_USE_WAYLAND)
+-    return EGL_PLATFORM_WAYLAND_EXT;
  #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_SIMPLE)
      return EGL_PLATFORM_VULKAN_DISPLAY_MODE_SIMPLE_ANGLE;
  #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_HEADLESS)
