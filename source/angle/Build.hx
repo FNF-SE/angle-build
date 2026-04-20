@@ -120,7 +120,7 @@ class Build
 					case 'linux':
 						FileUtil.copyFile('angle/${buildConfig.getExportPath()}/$lib.so', 'build/$buildPlatform/lib/${buildConfig.cpu}/$lib.so');
 					case 'android':
-						FileUtil.copyFile('angle/${buildConfig.getExportPath()}/${lib}_angle.so', 'build/$buildPlatform/lib/${buildConfig.cpu}/${lib}_angle.so');
+						FileUtil.copyFile('angle/${buildConfig.getExportPath()}/$lib.so', 'build/$buildPlatform/lib/${buildConfig.cpu}/$lib.so');
 					case 'macos':
 						if (!macosLibsToCombine.exists(lib))
 							macosLibsToCombine.set(lib, new Array<String>());
@@ -284,11 +284,11 @@ class Build
 
 					if (buildPlatform == 'linux')
 					{
-						renderingBackends.push('angle_use_x11=true'); // Enable X11 backend
+						renderingBackends.push('angle_use_x11=false'); // Disable X11 backend
 						renderingBackends.push('angle_use_wayland=true'); // Enable Wayland backend
 						renderingBackends.push('use_ozone=true'); // Enable Ozone backend for Linux
 						renderingBackends.push('ozone_auto_platforms=false');
-						renderingBackends.push('ozone_platform_x11=true');
+						renderingBackends.push('ozone_platform_x11=false');
 						renderingBackends.push('ozone_platform_wayland=true');
 					}
 
